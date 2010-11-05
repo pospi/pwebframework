@@ -40,9 +40,13 @@ class Response
 	 * @param	int		$at		position within existing output blocks to add.
 	 * 							if the index exists, block is inserted there and all following are shifted up
 	 */
-	public function addBlock($block, $at = -1)
+	public function addBlock($block, $at = null)
 	{
-		array_splice($this->outputBlocks, $at, 0, $block);
+		if ($at === null) {
+			$this->outputBlocks[] = $block;
+		} else {
+			array_splice($this->outputBlocks, $at, 0, $block);
+		}
 	}
 	
 	// Send this entire response, then exit the script
