@@ -10,7 +10,8 @@
 	
 	To create more complex output logic, output blocks should be implemented as
 	string-convertible objects, with specific data formatting for request mode
-	types handled internally.
+	types handled internally. Additionally, output blocks may be nested in
+	subarrays and manipulated as related sets.
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
 	@date		2010-07-08
@@ -82,11 +83,6 @@ class Response
 	//==========================================================================
 	//		HTTP header handling
 	
-	public function redirect($uri)
-	{
-		$this->setHeader('Location', $uri);
-	}
-	
 	// set an HTTP header directly
 	public function setHeader($key, $val)
 	{
@@ -118,6 +114,21 @@ class Response
 		if (headers_sent($file, $line)) {
 			trigger_error("Attempted to set headers, but already set by $file:$line");
 		}
+	}
+	
+	//==========================================================================
+	
+	// IMMEDIATELY redirects the remote agent to this URL, and aborts the current script
+	public function redirect($uri)
+	{
+		$this->setHeader('Location', $uri);
+		$this->send();
+	}
+	
+	// sets a redirect but does not forward the browser straight away
+	public function setRedirect($uri)
+	{
+		$this->setHeader('Location', $uri);
 	}
 }
 
