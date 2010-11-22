@@ -1,4 +1,4 @@
-<?php
+<?php 
  /*===============================================================================
 	pWebFramework - request handler class
 	----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ abstract class Request
 	 * Find a parameter variable for the request. Looks in $_GET under normal
 	 * conditions and in $_SERVER['argv'] when running under CLI.
 	 */
-	public static function get($key, $expect = EXPECT_RAW, $allowable = null, $default = null)
+	public static function get($key, $expect = EXPECT_RAW, $default = null, $allowable = null)
 	{
 		if (Request::getRequestMethod() == Request::RM_CLI) {
 			return Request::sanitise($_SERVER['argv'], $key, $expect, $allowable, $default);
@@ -50,7 +50,7 @@ abstract class Request
 	/**
 	 * Same as above, for POSTs
 	 */
-	public static function post($key, $expect = EXPECT_RAW, $allowable = null, $default = null)
+	public static function post($key, $expect = EXPECT_RAW, $default = null, $allowable = null)
 	{
 		return Request::sanitise($_POST, $key, $expect, $allowable, $default);
 	}
@@ -58,7 +58,7 @@ abstract class Request
 	/**
 	 * And again, for Cookies
 	 */
-	public static function cookie($key, $expect = EXPECT_RAW, $allowable = null, $default = null)
+	public static function cookie($key, $expect = EXPECT_RAW, $default = null, $allowable = null)
 	{
 		return Request::sanitise($_COOKIE, $key, $expect, $allowable, $default);
 	}
@@ -108,53 +108,59 @@ abstract class Request
 			return $default;
 		}
 		$var = $from[$key];
-
-		switch ($expect) {
-			case EXPECT_STRING:
-				$var = $var == '' || !is_scalar($var) ? null : strval($var);
-				break;
-			case EXPECT_INT:
-				$var = is_numeric($var) ? intval($var) : null;
-				break;
-			case EXPECT_FLOAT:
-				$var = is_numeric($var) ? floatval($var) : null;
-				break;
-			case EXPECT_ID:
-				$i = intval($var);
-				$var = is_numeric($var) && $var - $i == 0 && $i > 0 ? $i : null;
-				break;
-			case EXPECT_BOOL:
-				if ($var == 'no' || $var == 'false' || $var == '0') {
-					$var = false;
-				} else if ($var == 'yes' || $var == 'true' || (is_numeric($var) && $var > 0)) {
-					$var = true;
-				} else {
-					$var = null;
-				}
-				break;
-			case EXPECT_ARRAY:
-				$var = is_array($var) ? $var : null;
-				break;
-			case EXPECT_JSON:
-				if (is_string($var)) {
-					$o = json_decode($var);
-					if ($o === null) {
-						switch (json_last_error()) {
-							case JSON_ERROR_DEPTH:
-								Request::sanitisationError($from, "Maximum stack depth exceeded parsing JSON variable '$key' from %SOURCE%", $required);
-							case JSON_ERROR_CTRL_CHAR:
-								Request::sanitisationError($from, "JSON control character error in %SOURCE% variable '$key'", $required);
-							case JSON_ERROR_STATE_MISMATCH:
-								Request::sanitisationError($from, "Malformed JSON encountered in %SOURCE% variable '$key'", $required);
-							case JSON_ERROR_SYNTAX:
-								Request::sanitisationError($from, "JSON syntax error in %SOURCE% variable '$key'", $required);
-						}
+		
+		if (is_string($expect)) {		// expecting regular expression match, return default if no match
+			if (!preg_match($expect, $var)) {
+				$var = $default;
+			}
+		} else {
+			switch ($expect) {
+				case EXPECT_STRING:
+					$var = $var == '' || !is_scalar($var) ? null : strval($var);
+					break;
+				case EXPECT_INT:
+					$var = is_numeric($var) ? intval($var) : null;
+					break;
+				case EXPECT_FLOAT:
+					$var = is_numeric($var) ? floatval($var) : null;
+					break;
+				case EXPECT_ID:
+					$i = intval($var);
+					$var = is_numeric($var) && $var - $i == 0 && $i > 0 ? $i : null;
+					break;
+				case EXPECT_BOOL:
+					if ($var == 'no' || $var == 'false' || $var == '0') {
+						$var = false;
+					} else if ($var == 'yes' || $var == 'true' || (is_numeric($var) && $var > 0)) {
+						$var = true;
+					} else {
+						$var = null;
 					}
-					$var = is_object($o) ? $o : null;
-				} else {
-					$var = null;
-				}
-				break;
+					break;
+				case EXPECT_ARRAY:
+					$var = is_array($var) ? $var : null;
+					break;
+				case EXPECT_JSON:
+					if (is_string($var)) {
+						$o = json_decode($var);
+						if ($o === null) {
+							switch (json_last_error()) {
+								case JSON_ERROR_DEPTH:
+									Request::sanitisationError($from, "Maximum stack depth exceeded parsing JSON variable '$key' from %SOURCE%", $required);
+								case JSON_ERROR_CTRL_CHAR:
+									Request::sanitisationError($from, "JSON control character error in %SOURCE% variable '$key'", $required);
+								case JSON_ERROR_STATE_MISMATCH:
+									Request::sanitisationError($from, "Malformed JSON encountered in %SOURCE% variable '$key'", $required);
+								case JSON_ERROR_SYNTAX:
+									Request::sanitisationError($from, "JSON syntax error in %SOURCE% variable '$key'", $required);
+							}
+						}
+						$var = is_object($o) ? $o : null;
+					} else {
+						$var = null;
+					}
+					break;
+			}
 		}
 
 		if (is_array($allowable) && !in_array($var, $allowable)) {
