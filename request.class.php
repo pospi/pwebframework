@@ -1,4 +1,4 @@
-<?php 
+<?php
  /*===============================================================================
 	pWebFramework - request handler class
 	----------------------------------------------------------------------------
@@ -108,10 +108,12 @@ abstract class Request
 			return $default;
 		}
 		$var = $from[$key];
-		
-		if (is_string($expect)) {		// expecting regular expression match, return default if no match
-			if (!preg_match($expect, $var)) {
-				$var = $default;
+
+		if (is_string($expect)) {		// expecting regular expression match, return default if no match or return subpattern array
+			if (!preg_match($expect, $var, $matches)) {
+				return $default;
+			} else {
+				return $matches;
 			}
 		} else {
 			switch ($expect) {
@@ -138,7 +140,7 @@ abstract class Request
 					}
 					break;
 				case EXPECT_ARRAY:
-					$var = is_array($var) ? $var : null;
+					$var = is_array($var) && !Request::arrayEmpty($var) ? $var : null;
 					break;
 				case EXPECT_JSON:
 					if (is_string($var)) {
@@ -199,6 +201,16 @@ abstract class Request
 	{
 		$place = (($from === $_GET || isset($_SERVER['argv']) && $from === $_SERVER['argv']) ? 'GET' : ($from === $_POST ? 'POST' : ($from === $_COOKIE ? 'COOKIE' : 'REFERENCED')));
 		trigger_error(str_replace('%SOURCE%', $place, $msg), ($critical ? E_USER_ERROR : E_USER_WARNING));
+	}
+
+	private static function arrayEmpty($arr)
+	{
+		foreach ($arr as $v) {
+			if (!empty($v)) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
