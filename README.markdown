@@ -10,14 +10,14 @@ About
 Features
 --------
 - Request interrogation
--- Input sanitisation (from GET, POST, COOKIE etc)
--- Request method determination (HTTP, AJAX, CLI)
+    - Input sanitisation (from GET, POST, COOKIE etc)
+    - Request method determination (HTTP, AJAX, CLI)
 - Response handling
--- Header manipulation
--- Heavily genericised output handling in the form of ordered blocks
+    - Header manipulation
+    - Heavily genericised output handling in the form of ordered blocks
 - Session management
--- Creation, destruction (login / logout)
--- Stacking (allows user impersonation, etc)
+    - Creation, destruction (login / logout)
+    - Stacking (allows user impersonation, etc)
 
 
 Todo
@@ -33,4 +33,4 @@ This software is provided under an MIT open source license, read the 'LICENSE.tx
 
 Copyright
 ---------
-Copyright (c) 2010 Sam Pospischil <pospi@spadgos.com>
+Copyright (c) 2010 Sam Pospischil <pospi at spadgos dot com>
