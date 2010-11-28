@@ -33,4 +33,4 @@ This software is provided under an MIT open source license, read the 'LICENSE.tx
 
 Copyright
 ---------
-Copyright (c) 2010 Sam Pospischil <pospi at spadgos dot com>
+Copyright (c) 2010 Sam Pospischil (pospi at spadgos dot com)
