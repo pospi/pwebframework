@@ -30,6 +30,7 @@ abstract class Request
 	const RM_CLI  = 2;
 
 	private	static $REQUEST_MODE = null;
+	private static $QUERY_PARAMS = null;
 
 	//==================================================================================================================
 	//		Request interrogation
@@ -85,6 +86,72 @@ abstract class Request
 		return Request::sanitise($_COOKIE, $key, $expect, $allowable, null, true);
 	}
 
+	//==========================================================================
+	
+	// retrieve the current page query string as it exists (an array)
+	public static function getQueryParams()
+	{
+		if (Request::$QUERY_PARAMS === null) {
+			Request::storeQueryParams();
+		}
+		return Request::$QUERY_PARAMS;
+	}
+	
+	/**
+	 * Modify values in the current query string. Handy for changing where
+	 * forms send to when you want to keep the current GET params intact.
+	 * This also allows you to do this without touching the initial GET array
+	 * sent to the server.
+	 * Accepts two parameter formats:
+	 * 	[string, mixed]				<-- modifies the PAGE query string (imported at request start), in place
+	 * 	[array, string, mixed]		<-- modifies the query string specified by associative array passed in and returns it. Original isn't touched.
+	 */
+	public static function modifyQueryString()
+	{
+		$a = func_get_args();
+		if (sizeof($a) == 3) {
+			list($arr, $k, $v) = $a;
+			/*$stack = debug_backtrace();		// this only seems to work if we use call-time pass-by-reference,
+			if (isset($stack[0]["args"][0])) {	// so I'm going to go ahead and say it's unreliable (and causes warnings)
+				$arr = &$stack[0]["args"][0];
+			}*/
+		} else {
+			if (Request::$QUERY_PARAMS === null) {
+				Request::storeQueryParams();
+			}
+			$arr = &Request::$QUERY_PARAMS;
+			list($k, $v) = $a;
+		}
+		$arr[$k] = $v;
+		return $arr;
+	}
+	
+	/**
+	 * retrieve the final (possibly modified) page query string, as a string
+	 *
+	 * Accepts two parameter formats:
+	 * 	[]			<-- returns the current page GET variables as a query string
+	 * 	[array]		<-- returns the query string specified by associative array
+	 */
+	public static function getQueryString()
+	{
+		$a = func_get_args();
+		if (sizeof($a) == 1) {
+			list($arr) = $a;
+		} else {
+			if (Request::$QUERY_PARAMS === null) {
+				Request::storeQueryParams();
+			}
+			$arr = Request::$QUERY_PARAMS;
+		}
+		return http_build_query($arr);
+	}
+	
+	private static function storeQueryParams()
+	{
+		Request::$QUERY_PARAMS = Request::getRequestMethod() == Request::RM_CLI ? $_SERVER['argv'] : $_GET;
+	}
+	
 	//==========================================================================
 
 	/**
