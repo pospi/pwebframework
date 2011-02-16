@@ -86,7 +86,8 @@ abstract class Request
 		return Request::sanitise($_COOKIE, $key, $expect, $allowable, null, true);
 	}
 
-	//==========================================================================
+	//==================================================================================================================
+	//		QueryString handling
 	
 	// retrieve the current page query string as it exists (an array)
 	public static function getQueryParams()
@@ -122,7 +123,11 @@ abstract class Request
 			$arr = &Request::$QUERY_PARAMS;
 			list($k, $v) = $a;
 		}
-		$arr[$k] = $v;
+		if ($v === null) {
+			unset($arr[$k]);
+		} else {
+			$arr[$k] = $v;
+		}
 		return $arr;
 	}
 	
@@ -151,8 +156,31 @@ abstract class Request
 	{
 		Request::$QUERY_PARAMS = Request::getRequestMethod() == Request::RM_CLI ? $_SERVER['argv'] : $_GET;
 	}
-	
-	//==========================================================================
+
+	//==================================================================================================================
+	//		Request method determination
+
+	public static function getRequestMethod()
+	{
+		if (Request::$REQUEST_MODE === null) {
+			Request::determineRequestMethod();
+		}
+		return Request::$REQUEST_MODE;
+	}
+
+	private static function determineRequestMethod()
+	{
+		if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+			Request::$REQUEST_MODE = Request::RM_AJAX;
+		} else if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+			Request::$REQUEST_MODE = Request::RM_CLI;
+		} else {
+			Request::$REQUEST_MODE = Request::RM_HTTP;
+		}
+	}
+
+	//==================================================================================================================
+	//		Utility methods & internals
 
 	/**
 	 * Reads a variable from some unsanitised request variable, sanitising and typecasting
@@ -237,31 +265,6 @@ abstract class Request
 		}
 		return $var;
 	}
-
-	//==================================================================================================================
-	//		Request method determination
-
-	public static function getRequestMethod()
-	{
-		if (Request::$REQUEST_MODE === null) {
-			Request::determineRequestMethod();
-		}
-		return Request::$REQUEST_MODE;
-	}
-
-	private static function determineRequestMethod()
-	{
-		if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-			Request::$REQUEST_MODE = Request::RM_AJAX;
-		} else if (!isset($_SERVER['HTTP_USER_AGENT'])) {
-			Request::$REQUEST_MODE = Request::RM_CLI;
-		} else {
-			Request::$REQUEST_MODE = Request::RM_HTTP;
-		}
-	}
-
-	//==================================================================================================================
-	//		Util
 
 	// :WARNING: if request arrays happen to be *identical*, origin data source may be misinterpreted
 	private static function sanitisationError(&$from, $msg, $critical = true)
