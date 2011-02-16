@@ -272,11 +272,12 @@ abstract class Request
 		$place = (($from === $_GET || isset($_SERVER['argv']) && $from === $_SERVER['argv']) ? 'GET' : ($from === $_POST ? 'POST' : ($from === $_COOKIE ? 'COOKIE' : 'REFERENCED')));
 		trigger_error(str_replace('%SOURCE%', $place, $msg), ($critical ? E_USER_ERROR : E_USER_WARNING));
 	}
-
+	
+	// :NOTE: we count arrays full of empty strings or NULL values as empty
 	private static function arrayEmpty($arr)
 	{
 		foreach ($arr as $v) {
-			if (!empty($v)) {
+			if (!empty($v) || $v === "0" || $v === 0 || $v === false) {
 				return false;
 			}
 		}
