@@ -89,6 +89,26 @@ abstract class Request
 	//==================================================================================================================
 	//		QueryString handling
 	
+	/**
+	 * Rewrite a URL in one step, using the inner functions below.
+	 *
+	 * @param	array		$newParams		array of keys/values to override current queryString with
+	 * @param	string		$newBase		new basepath for the URL (any URI without queryString is ok)
+	 * @param	array		$oldParams		starting queryString keys/values. Can be used to override the current one
+	 */
+	public static function rewriteUrl($newParams, $newBase = null, $oldParams = null)
+	{
+		if (!$oldParams) {
+			$oldParams = Request::$QUERY_PARAMS;
+		}
+		if (!$newBase) {
+			$newBase = $_SERVER['PHP_SELF'];
+		}
+		$newParams = Request::modifyQueryString($oldParams, $newParams);
+		
+		return Request::getURLString($newBase, $newParams);
+	}
+	
 	// retrieve the current page query string as it exists (an array)
 	public static function getQueryParams()
 	{
@@ -103,41 +123,49 @@ abstract class Request
 	 * forms send to when you want to keep the current GET params intact.
 	 * This also allows you to do this without touching the initial GET array
 	 * sent to the server.
-	 * Accepts two parameter formats:
-	 * 	[array/string, mixed]				<-- modifies the PAGE query string (imported at request start), in place
-	 * 	[array, array/string, mixed]		<-- modifies the query string specified by associative array passed in and returns it. Original isn't touched.
+	 * Accepts 4 parameter formats:
+	 * 	[string, mixed]				<-- modifies the PAGE query string (imported at request start), in place
+	 * 	[array, string, mixed]		<-- modifies the query string specified by associative array passed in and returns it. Original isn't touched.
+	 * 	[array]						<-- modifies the PAGE query string (imported at request start) by setting all keys present in this array to their values
+	 * 	[array, array]				<-- modifies the query string specified by first parameter with values in the second
 	 */
 	public static function modifyQueryString()
 	{
 		$a = func_get_args();
 		if (sizeof($a) == 3) {
-			list($arr, $k, $v) = $a;
+			$arr		= $a[0];
+			$changes	= array($a[1] => $a[2]);
 			/*$stack = debug_backtrace();		// this only seems to work if we use call-time pass-by-reference,
 			if (isset($stack[0]["args"][0])) {	// so I'm going to go ahead and say it's unreliable (and causes warnings)
 				$arr = &$stack[0]["args"][0];
 			}*/
+		} else if (sizeof($a) == 2) {
+			if (is_string($a[0])) {
+				if (Request::$QUERY_PARAMS === null) {
+					Request::storeQueryParams();
+				}
+				$arr		= &Request::$QUERY_PARAMS;
+				$changes	= array($a[0] => $a[1]);
+			} else {
+				$arr		= $a[0];
+				$changes	= $a[1];
+			}
 		} else {
 			if (Request::$QUERY_PARAMS === null) {
 				Request::storeQueryParams();
 			}
-			$arr = &Request::$QUERY_PARAMS;
-			list($k, $v) = $a;
+			$arr		= &Request::$QUERY_PARAMS;
+			$changes	= $a[0];
 		}
-		if ($v === null) {
-			unset($arr[$k]);
-		} else {
-			if (is_array($k)) {		// set multiple keys / values simultaneously
-				foreach ($k as $i => $j) {
-					if ($v[$i] === null) {
-						unset($arr[$j]);
-					} else {
-						$arr[$j] = $v[$i];
-					}
-				}
+		
+		foreach ($changes as $i => $j) {
+			if ($j === null) {
+				unset($arr[$i]);
 			} else {
-				$arr[$k] = $v;
+				$arr[$i] = $j;
 			}
 		}
+			
 		return $arr;
 	}
 	
