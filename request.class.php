@@ -104,8 +104,8 @@ abstract class Request
 	 * This also allows you to do this without touching the initial GET array
 	 * sent to the server.
 	 * Accepts two parameter formats:
-	 * 	[string, mixed]				<-- modifies the PAGE query string (imported at request start), in place
-	 * 	[array, string, mixed]		<-- modifies the query string specified by associative array passed in and returns it. Original isn't touched.
+	 * 	[array/string, mixed]				<-- modifies the PAGE query string (imported at request start), in place
+	 * 	[array, array/string, mixed]		<-- modifies the query string specified by associative array passed in and returns it. Original isn't touched.
 	 */
 	public static function modifyQueryString()
 	{
@@ -126,7 +126,17 @@ abstract class Request
 		if ($v === null) {
 			unset($arr[$k]);
 		} else {
-			$arr[$k] = $v;
+			if (is_array($k)) {		// set multiple keys / values simultaneously
+				foreach ($k as $i => $j) {
+					if ($v[$i] === null) {
+						unset($arr[$j]);
+					} else {
+						$arr[$j] = $v[$i];
+					}
+				}
+			} else {
+				$arr[$k] = $v;
+			}
 		}
 		return $arr;
 	}
@@ -150,6 +160,37 @@ abstract class Request
 			$arr = Request::$QUERY_PARAMS;
 		}
 		return http_build_query($arr);
+	}
+	
+	/**
+	 * Retrieves a queryString using getQueryString(), and prepends the page
+	 * URL specified. If ommitted, the current page's url is used.
+	 *
+	 * Accepts 4 parameter formats:
+	 * 	[]				<-- returns the current page and querystring
+	 * 	[string]		<-- returns the current querystring pointed to a new page
+	 * 	[array]			<-- returns the current page with passed in querystring
+	 * 	[string, array]	<-- returns URL for the passed in page and querystring
+	 */
+	public static function getURLString()
+	{
+		$page = $_SERVER['PHP_SELF'];
+		$params = null;
+		$a = func_get_args();
+		
+		if (sizeof($a) == 1) {
+			if (is_array($a[0])) {
+				$params = $a[0];
+			} else {
+				$page = $a[0];
+			}
+		} else if (sizeof($a) == 2) {
+			list($page, $params) = $a;
+		}
+		
+		$query = Request::getQueryString($params);
+		
+		return $query ? $page . '?' . Request::getQueryString($params) : $page;
 	}
 	
 	private static function storeQueryParams()
@@ -226,9 +267,9 @@ abstract class Request
 					$var = is_numeric($var) && $var - $i == 0 && $i > 0 ? $i : null;
 					break;
 				case EXPECT_BOOL:
-					if ($var == 'no' || $var == 'false' || $var == '0') {
+					if ($var == 'off' || $var == 'no' || $var == 'false' || $var == '0') {
 						$var = false;
-					} else if ($var == 'yes' || $var == 'true' || (is_numeric($var) && $var > 0)) {
+					} else if ($var == 'on' || $var == 'yes' || $var == 'true' || (is_numeric($var) && $var > 0)) {
 						$var = true;
 					} else {
 						$var = null;
