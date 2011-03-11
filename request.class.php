@@ -334,6 +334,7 @@ abstract class Request
 	 */
 	public static function setHeader(&$headers, $k, $v)
 	{
+		$k = strtolower($k);
 		if ($k == '__previousheader') {
 			return false;
 		} else if (!$k || $k == 0) {
@@ -351,6 +352,7 @@ abstract class Request
 	 */
 	public static function addHeader(&$headers, $k, $v)
 	{
+		$k = strtolower($k);
 		if ($k == '__previousheader') {
 			return false;
 		} else if (!$k || $k === '0') {
@@ -367,6 +369,7 @@ abstract class Request
 		} else {
 			$headers[$k] = $v;
 		}
+		return true;
 	}
 	
 	/**
@@ -395,6 +398,13 @@ abstract class Request
 		}
 		
 		return $string;
+	}
+	
+	public static function getHeader($headerData, $key)
+	{
+		$key = strtolower($key);
+		$val = isset($headerData[$key]) ? $headerData[$key] : false;
+		return $val;
 	}
 	
 	// return the full HTTP header string for a status code

@@ -24,7 +24,7 @@ class Response
 	const RESP_JSON		= 1;
 	const RESP_PLAINTEXT= 2;
 	
-	private	$headers = array();
+	public	$headers = array();
 	private $outputBlocks = array();
 	
 	//==========================================================================
@@ -90,7 +90,11 @@ class Response
 	// set an HTTP header directly
 	public function setHeader($key, $val)
 	{
-		$this->headers[$key] = $val;
+		Request::setHeader($this->headers, $key, $val);
+	}
+	public function addHeader($key, $val)
+	{
+		Request::addHeader($this->headers, $key, $val);
 	}
 	
 	public function getHeaders()
@@ -100,14 +104,34 @@ class Response
 	
 	public function getHeader($key)
 	{
-		return isset($this->headers[$key]) ? $this->headers[$key] : null;
+		return Request::getHeader($this->headers, $key);
 	}
 	
-	public function sendHeaders()
+	public function sendHeaders($headers = null)
 	{
-		Response::checkHeaders();
-		foreach ($this->headers as $name => $value) {
-			header("$name: $value");
+		Response::checkHeaders();	// die if output started
+		if (!isset($headers)) {
+			$headers = $this->headers;
+		}
+		
+		// send earlier headers first
+		if (isset($headers['__previousheader'])) {
+			$prev = $headers['__previousheader'];
+			unset($headers['__previousheader']);
+			
+			sendHeaders($prev);
+		}
+		
+		header(Request::getStatusHeader($headers[0]));
+		unset($headers[0]);
+		
+		foreach ($headers as $k => $v) {
+			if (!is_array($v)) {
+				$v = array($v);
+			}
+			foreach ($v as $val) {
+				header(ucwords($k) . ": " . $val);
+			}
 		}
 	}
 
