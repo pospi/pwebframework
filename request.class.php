@@ -28,9 +28,13 @@ abstract class Request
 	const RM_HTTP = 0;
 	const RM_AJAX = 1;
 	const RM_CLI  = 2;
+	
+	// aside from server variables prefixed with 'HTTP_', these will also be retrieved as HTTP header values
+	private static $OTHER_HTTP_HEADERS = array('CONTENT_TYPE', 'CONTENT_LENGTH');
 
 	private	static $REQUEST_MODE = null;
 	private static $QUERY_PARAMS = null;
+	private static $HTTP_HEADERS = null;
 
 	//==================================================================================================================
 	//		Request interrogation
@@ -99,7 +103,7 @@ abstract class Request
 	public static function rewriteUrl($newParams, $newBase = null, $oldParams = null)
 	{
 		if (!$oldParams) {
-			$oldParams = Request::$QUERY_PARAMS;
+			$oldParams = Request::getQueryParams();
 		}
 		if (!$newBase) {
 			$newBase = $_SERVER['PHP_SELF'];
@@ -112,9 +116,7 @@ abstract class Request
 	// retrieve the current page query string as it exists (an array)
 	public static function getQueryParams()
 	{
-		if (Request::$QUERY_PARAMS === null) {
-			Request::storeQueryParams();
-		}
+		Request::storeQueryParams();
 		return Request::$QUERY_PARAMS;
 	}
 	
@@ -141,9 +143,7 @@ abstract class Request
 			}*/
 		} else if (sizeof($a) == 2) {
 			if (is_string($a[0])) {
-				if (Request::$QUERY_PARAMS === null) {
-					Request::storeQueryParams();
-				}
+				Request::storeQueryParams();
 				$arr		= &Request::$QUERY_PARAMS;
 				$changes	= array($a[0] => $a[1]);
 			} else {
@@ -151,9 +151,7 @@ abstract class Request
 				$changes	= $a[1];
 			}
 		} else {
-			if (Request::$QUERY_PARAMS === null) {
-				Request::storeQueryParams();
-			}
+			Request::storeQueryParams();
 			$arr		= &Request::$QUERY_PARAMS;
 			$changes	= $a[0];
 		}
@@ -182,9 +180,7 @@ abstract class Request
 		if (sizeof($a) == 1) {
 			list($arr) = $a;
 		} else {
-			if (Request::$QUERY_PARAMS === null) {
-				Request::storeQueryParams();
-			}
+			Request::storeQueryParams();
 			$arr = Request::$QUERY_PARAMS;
 		}
 		return http_build_query($arr);
@@ -223,7 +219,84 @@ abstract class Request
 	
 	private static function storeQueryParams()
 	{
-		Request::$QUERY_PARAMS = Request::getRequestMethod() == Request::RM_CLI ? $_SERVER['argv'] : $_GET;
+		if (Request::$QUERY_PARAMS === null) {
+			Request::$QUERY_PARAMS = Request::getRequestMethod() == Request::RM_CLI ? $_SERVER['argv'] : $_GET;
+		}
+	}
+
+	//==================================================================================================================
+	//		Header handling
+	
+	public static function getHeaders()
+	{
+		Request::storeHeaders();
+		return Request::$HTTP_HEADERS;
+	}
+	
+	/**
+	 * Accepts headers in one of the following formats, and returns an array
+	 * of header fields properly keyed on their field names. Element 0 in the
+	 * returned array gives the HTTP status code.
+	 *
+	 * If multiple status code lines are encountered within a header block,
+	 * the header array is reset when the last one is found, and the remainder
+	 * of the headers are treated as the 'relevant' header block. Other repeats
+	 * of header lines cause their values to become arrays rather than strings.
+	 * 
+	 * @param	$headers	- header block, as string
+	 * 						- array of individual (joined) header lines
+	 */
+	public static function parseHeaders($headers)
+	{
+		if (!is_array($headers)) {
+			$headers = preg_split("(\r\n|\r|\n)", $headers);
+		}
+
+		$currentHeaderBlock = array();
+		
+		foreach ($headers as $line) {
+			$parts = explode(":", $line, 2);
+			if (!$parts[1]) {
+				$statusCode = intval(preg_replace('/^http\/(\d|\.)+\s+/i', '', $parts[0]));
+				// each time we find a new status header, stack the old block
+				if (!sizeof($currentHeaderBlock)) {
+					$currentHeaderBlock[] = $statusCode;
+				} else {
+					$previousHeaderBlock = $currentHeaderBlock;
+					$currentHeaderBlock = array(
+						0 => $statusCode,
+						'__previousheader' => &$previousHeaderBlock
+					);
+				}
+			} else {
+				$idx = trim($parts[0]);
+				if (isset($currentHeaderBlock[$idx])) {
+					if (!is_array($currentHeaderBlock[$idx])) {
+						$currentHeaderBlock[$idx] = array($currentHeaderBlock[$idx]);
+					}
+					$currentHeaderBlock[$idx][] = ltrim($parts[1]);
+				} else {
+					$currentHeaderBlock[$idx] = ltrim($parts[1]);
+				}
+			}
+		}
+		
+		return $currentHeaderBlock;
+	}
+	
+	// this method works regardless of the server environment. Headers are stored with lowercase keys.
+	private static function storeHeaders()
+	{
+		if (Request::$HTTP_HEADERS === null) {
+			$headers = array();
+			foreach ($_SERVER as $k => $v) {
+				if (strpos($k, 'HTTP_') === 0 || in_array($k, Request::$OTHER_HTTP_HEADERS)) {
+					$k = str_replace(array('HTTP_', '_'), array('', '-'), $k);
+					$headers[strtolower($k)] = $v;
+				}
+			}
+			Request::$HTTP_HEADERS = $headers;
+		}
 	}
 
 	//==================================================================================================================
@@ -231,20 +304,20 @@ abstract class Request
 
 	public static function getRequestMethod()
 	{
-		if (Request::$REQUEST_MODE === null) {
-			Request::determineRequestMethod();
-		}
+		Request::determineRequestMethod();
 		return Request::$REQUEST_MODE;
 	}
 
 	private static function determineRequestMethod()
 	{
-		if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-			Request::$REQUEST_MODE = Request::RM_AJAX;
-		} else if (!isset($_SERVER['HTTP_USER_AGENT'])) {
-			Request::$REQUEST_MODE = Request::RM_CLI;
-		} else {
-			Request::$REQUEST_MODE = Request::RM_HTTP;
+		if (Request::$REQUEST_MODE === null) {
+			if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+				Request::$REQUEST_MODE = Request::RM_AJAX;
+			} else if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+				Request::$REQUEST_MODE = Request::RM_CLI;
+			} else {
+				Request::$REQUEST_MODE = Request::RM_HTTP;
+			}
 		}
 	}
 
