@@ -406,8 +406,10 @@ abstract class Request
 		$previous = isset($headerData['__previousheader']) ? $headerData['__previousheader'] : null;
 		unset($headerData['__previousheader']);
 		
-		$string = Request::getStatusHeader($headerData[0]) . "\n";
-		unset($headerData[0]);
+		if (isset($headerData[0])) {
+			$string = Request::getStatusHeader($headerData[0]) . "\n";
+			unset($headerData[0]);
+		}
 		
 		foreach ($headerData as $k => $v) {
 			if (!is_array($v)) {
