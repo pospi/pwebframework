@@ -285,9 +285,13 @@ abstract class Request
 	 * the header array is reset when the last one is found, and the remainder
 	 * of the headers are treated as the 'relevant' header block. Other repeats
 	 * of header lines cause their values to become arrays rather than strings.
+	 *
+	 * The first empty line followed by a non-status HTTP header denotes the end
+	 * of the header block, and will abort parsing.
 	 * 
 	 * @param	$headers	- header block, as string
 	 * 						- array of individual (joined) header lines
+	 * @param	$returnBody	- if true, return an array with headers at [0], body at [1]
 	 * @return	array representing headers passed:
 	 * 			- keys are header names (in lowercase)
 	 * 			- values are header values:
@@ -296,18 +300,31 @@ abstract class Request
 	 * 			- header blocks earlier in the request chain recurse upwards 
 	 * 			  through each array's "__previousheader" value
 	 */
-	public static function parseHeaders($headers)
+	public static function parseHeaders($headers, $returnBody = false)
 	{
 		if (!is_array($headers)) {
 			$headers = preg_split("(\r\n|\r|\n)", $headers);
 		}
-
+		
 		$currentHeaderBlock = array();
 		
-		foreach ($headers as $line) {
+		foreach ($headers as $i => $line) {
+			if (empty($line)) {			// keep going. there may be another header block coming.
+				$nextLine = next($headers);
+				prev($headers);
+				$nextIsStatus = preg_match('/^http\/(\d\.\d)\s+/i', $nextLine);
+				unset($headers[$i]);
+				if (!$nextIsStatus) {
+					break;
+				} else {
+					continue;
+				}
+			}
+			
 			$parts = explode(":", $line, 2);
 			if (!$parts[1]) {
 				$statusCode = intval(preg_replace('/^http\/(\d|\.)+\s+/i', '', $parts[0]));
+				
 				// each time we find a new status header, stack the old block
 				if (!sizeof($currentHeaderBlock)) {
 					$currentHeaderBlock[] = $statusCode;
@@ -324,9 +341,17 @@ abstract class Request
 				
 				Request::addHeader($currentHeaderBlock, $idx, $val);
 			}
+			
+			unset($headers[$i]);
 		}
 		
-		return $currentHeaderBlock;
+		return $returnBody ? array($currentHeaderBlock, implode("\n", $headers)) : $currentHeaderBlock;
+	}
+	
+	// Accessor for above
+	public static function parseDocument($str)
+	{
+		return Request::parseHeaders($str, true);
 	}
 	
 	/**
@@ -411,6 +436,11 @@ abstract class Request
 	public static function getStatusHeader($code)
 	{
 		return 'HTTP/1.1 ' . $code . ' ' . Request::$STATUS_CODES[$code];
+	}
+	
+	public static function isOKHeader($code)
+	{
+		return $code >= 200 && $code < 400 && $code != 305;
 	}
 	
 	// this method works regardless of the server environment. Headers are stored with lowercase keys.
