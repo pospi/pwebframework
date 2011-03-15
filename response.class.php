@@ -4,18 +4,23 @@
 	----------------------------------------------------------------------------
 	An abstracted response class for handling nonspecific output functionality.
 	
-	Allows setting and manipulating HTTP headers & page output blocks. Nothing
-	is affected until the response is actually sent, leaving headers clean for
-	the duration of script.
-	
-	To create more complex output logic, output blocks should be implemented as
-	string-convertible objects, with specific data formatting for request mode
-	types handled internally. Additionally, output blocks may be nested in
-	subarrays and manipulated as related sets.
+	Provides:
+		- Header storage & manipulation
+			Nothing	is affected until the response is actually sent, leaving
+			headers clean for the duration of script.
+
+		- Output handling
+			Very generic output handling by way of decodable blocks. To create
+			complex output logic, output blocks should be implemented as
+			string-convertible objects, with specific data formatting for request
+			mode types handled internally. Additionally, output blocks may be
+			nested in subarrays and manipulated as related sets.
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
 	@date		2010-07-08
   ===============================================================================*/
+
+require_once('headers.class.php');
 
 class Response
 {
@@ -24,7 +29,7 @@ class Response
 	const RESP_JSON		= 1;
 	const RESP_PLAINTEXT= 2;
 	
-	public	$headers = array();
+	private	$headers = array();
 	private $outputBlocks = array();
 	
 	//==========================================================================
@@ -87,24 +92,29 @@ class Response
 	//==========================================================================
 	//		HTTP header handling
 	
-	// set an HTTP header directly
-	public function setHeader($key, $val)
-	{
-		Request::setHeader($this->headers, $key, $val);
-	}
-	public function addHeader($key, $val)
-	{
-		Request::addHeader($this->headers, $key, $val);
-	}
-	
 	public function getHeaders()
 	{
 		return $this->headers;
 	}
 	
+	public function setHeaders($headers)
+	{
+		$this->headers = $headers;
+	}
+	
+	// set an HTTP header directly
+	public function setHeader($key, $val)
+	{
+		Headers::setHeader($this->headers, $key, $val);
+	}
+	public function addHeader($key, $val)
+	{
+		Headers::addHeader($this->headers, $key, $val);
+	}
+	
 	public function getHeader($key)
 	{
-		return Request::getHeader($this->headers, $key);
+		return Headers::getHeader($this->headers, $key);
 	}
 	
 	public function sendHeaders($headers = null)
@@ -122,8 +132,10 @@ class Response
 			sendHeaders($prev);
 		}
 		
-		header(Request::getStatusHeader($headers[0]));
-		unset($headers[0]);
+		if (isset($headers[0])) {
+			header(Headers::getStatusLine($headers[0]));
+			unset($headers[0]);
+		}
 		
 		foreach ($headers as $k => $v) {
 			if (!is_array($v)) {

@@ -17,4 +17,6 @@
 	require_once('request.class.php');
 	require_once('response.class.php');
 	require_once('session.class.php');
+	
+	require_once('http_proxy.class.php');
 ?>
