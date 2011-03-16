@@ -296,7 +296,7 @@ abstract class Request
 		$var = $from[$key];
 
 		if (is_string($expect)) {		// expecting regular expression match, return default if no match or return subpattern array
-			if (!preg_match($expect, $var, $matches)) {
+			if (!preg_match_all($expect, $var, $matches)) {
 				return $default;
 			} else {
 				return $matches;

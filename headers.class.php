@@ -185,10 +185,13 @@ class Headers
 		$k = strtolower($k);
 		if ($k == '__previousheader') {
 			return false;
-		} else if (!$k || $k == 0) {
+		} else if (!$k || $k === '0') {
 			$headers[0] = $v;
 		} else {
 			$headers[$k] = $v;
+		}
+		if (isset($headers['__previousheader'])) {
+			return Header::setHeader($headers['__previousheader'], $k, $v);
 		}
 		return true;
 	}
@@ -217,6 +220,20 @@ class Headers
 		} else {
 			$headers[$k] = $v;
 		}
+		return true;
+	}
+	
+	public static function eraseHeader(&$headers, $k)
+	{
+		$k = strtolower($k);
+		do {
+			if (!$k || $k === '0') {
+				unset($headers[0]);
+			} else {
+				unset($headers[$k]);
+			}
+		} while (isset($headers['__previousheader']) && $headers = &$headers['__previousheader']);
+
 		return true;
 	}
 	
