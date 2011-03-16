@@ -129,7 +129,7 @@ class Response
 			$prev = $headers['__previousheader'];
 			unset($headers['__previousheader']);
 			
-			sendHeaders($prev);
+			Response::sendHeaders($prev);
 		}
 		
 		if (isset($headers[0])) {
