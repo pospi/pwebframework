@@ -279,7 +279,11 @@ abstract class Request
 	 *
 	 * @param	array	&$from		the array to pull the key out of (usually one of $_GET/$_POST/$_COOKIE)
 	 * @param	string	$key		the name of the variable to retrieve
-	 * @param	int		$expect		one of the EXPECT_* constants, used to safely interpret the data
+	 * @param	int		$expect		- one of the EXPECT_* constants, used to safely interpret the data, or..
+	 * 								- a regex string to match the variable against. The extra modifier 'a'
+	 * 								  toggles between preg_match() and preg_match_all(). Array of matches is
+	 * 								  returned in either case - for preg_match each will be a subpattern, for
+	 * 								  preg_match_all each will be an array of subpatterns.
 	 * @param	array	$allowable	array of values which the parameter must be within
 	 * @param	mixed	$default	default value to return when variable is not set or in allowable values array
 	 * @param	bool	$required	if true, throw an error if this variable is not found
@@ -296,11 +300,15 @@ abstract class Request
 		$var = $from[$key];
 
 		if (is_string($expect)) {		// expecting regular expression match, return default if no match or return subpattern array
-			if (!preg_match_all($expect, $var, $matches)) {
+			// look for our custom 'a' modifier which matches all
+			$expect = preg_replace('/(\/\w*)a(\w*)$/', '$1$2', $expect, -1, $matchAll);
+			if ($matchAll && !preg_match_all($expect, $var, $matches)) {
 				return $default;
-			} else {
-				return $matches;
 			}
+			if (!$matchAll && preg_match($expect, $var, $matches)) {
+				return $default;
+			}
+			return $matches;
 		} else {
 			switch ($expect) {
 				case EXPECT_STRING:
