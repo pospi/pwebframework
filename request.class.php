@@ -359,7 +359,7 @@ abstract class Request
 			}
 		}
 
-		if (is_array($allowable) && !in_array($var, $allowable)) {
+		if ($var === null || (is_array($allowable) && !in_array($var, $allowable))) {
 			return $default;
 		}
 		return $var;
