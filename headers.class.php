@@ -19,6 +19,10 @@
  
 class Headers
 {
+	const STATUS = 0;		// this needs a constant, only because the parameter is not obvious
+							// to external code. It is a pointer to array index 0, used to set the HTTP
+							// status code. Use it as in Headers::setHeader(Headers::STATUS, 404); and similar.
+	
 	// aside from server variables prefixed with 'HTTP_', these will also be retrieved by Request as HTTP header values
 	public static $OTHER_HTTP_HEADERS = array('CONTENT_TYPE', 'CONTENT_LENGTH');
 	
