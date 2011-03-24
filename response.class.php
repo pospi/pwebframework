@@ -42,16 +42,59 @@ class Response
 	 * 							- any string to echo as-is
 	 * 							- an object to be decoded via its __toString() method
 	 * 							- a nested array of the above to be decoded together
-	 * @param	int		$at		position within existing output blocks to add.
-	 * 							if the index exists, block is inserted there and all following are shifted up
+	 * @param	mixed	$name	array index to file this newly added block under
+	 * @param	mixed	$before	index in existing output blocks to add at, or near.
+	 * 							- if the index exists, block is inserted there and all following are shifted up
+	 * 							- if index isn't found, FALSE is returned
+	 *
+	 * @return	true on success, false if an error occurred
 	 */
-	public function addBlock($block, $at = null)
+	public function addBlock($block, $name = null, $before = null)
 	{
-		if ($at === null) {
-			$this->outputBlocks[] = $block;
+		if ($before === null) {
+			if (isset($name)) {
+				$this->outputBlocks[$name] = $block;
+			} else {
+				$this->outputBlocks[] = $block;
+			}
+		} else if ($name !== null) {
+			return $this->injectBlock($block, $before, $name, true);
 		} else {
-			array_splice($this->outputBlocks, $at, 0, $block);
+			return false;
 		}
+		return true;
+	}
+	
+	// same as above, only it inserts after the target
+	public function addBlockAfter($block, $name, $after)
+	{
+		return $this->injectBlock($block, $after, $name, false);
+	}
+	
+	/**
+	 * Sets an output block by index.
+	 * This function will not recurse down & automatically create nonexistent block levels,
+	 * if you wish to add nested ones you must explicitly add/set them.
+	 *
+	 * @param	mixed	$idx	array index to set, or
+	 * 							array of indexes to recurse down through output blocks and set, or
+	 * 							string of period-separated indexes (eg. "1.4.2.0")
+	 * @param	mixed	$value	value to set the target block element to
+	 */
+	public function setBlock($idx, $value)
+	{
+		$parentAndIdx = &$this->getBlockParentAndIndex($idx, false);
+
+		if ($parentAndIdx !== false) {
+			$parentAndIdx[0][$parentAndIdx[1]] = $value;
+			return true;
+		}
+		return false;
+	}
+	
+	public function setAllBlocks($array)
+	{
+		$this->outputBlocks = $array;
 	}
 	
 	// Send this entire response, then exit the script
@@ -87,6 +130,64 @@ class Response
 		}
 		
 		return $output;
+	}
+	
+	private function injectBlock($block, $nearIdx, $name = null, $before = false)
+	{
+		$parentAndIdx = &$this->getBlockParentAndIndex($nearIdx, true);
+		
+		$keys = array_keys($parentAndIdx[0]);
+		$values = array_values($parentAndIdx[0]);
+
+		$start = array_search($parentAndIdx[1], $keys, true);
+		if ($start === false) {
+			return false;
+		}
+		
+		if (!$before) {
+			$start += 1;
+		}
+		
+		array_splice($keys, $start, 0, $name);
+		array_splice($values, $start, 0, $block);
+	
+		$parentAndIdx[0] = array_combine($keys, $values);
+	
+		return true;
+	}
+	
+	/**
+	 * Given an index into some subelement of the output blocks, returns an array of
+	 * a reference to the parent container array element and final index into that array.
+	 *
+	 * @param	mixed	$idx	array index to get the block for, or
+	 * 							array of indexes to recurse down through output blocks and retrieve, or
+	 * 							string of period-separated indexes (eg. "1.4.2.0")
+	 * @param	bool	$returnParent	if true, the array containing the target is returned. otherwise the element itself
+	 */
+	private function &getBlockParentAndIndex($idx, $returnParent = false)
+	{
+		if (is_string($idx)) {
+			$idx = explode('.', $idx);
+		} else if (is_int($idx)) {
+			$idx = array($idx);
+		}
+
+		$current = &$this->outputBlocks;
+		$counter = 0;
+		foreach ($idx as $goto) {
+			++$counter;
+			if ($counter == sizeof($idx)) {
+				$return = array(&$current, $idx[sizeof($idx) - 1]);
+				return $return;		// last index
+			} else if (isset($current[$goto]) && is_array($current[$goto])) {
+				$current = &$current[$goto];
+			} else {
+				return false;		// index was not set
+			}
+		}
+		
+		return false;	// not found or no index passed
 	}
 	
 	//==========================================================================
@@ -157,6 +258,7 @@ class Response
 	}
 	
 	//==========================================================================
+	//	Header helpers
 	
 	// IMMEDIATELY redirects the remote agent to this URL, and aborts the current script
 	public function redirect($uri)
