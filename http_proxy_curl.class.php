@@ -49,6 +49,9 @@ class ProxyCURL extends HTTPProxy
 	
 	public function setUri($uri)
 	{
+		if ($this->curl) {
+			curl_close($this->curl);
+		}
 		$this->curl = curl_init($uri);
 		parent::setUri($uri);
 	}
@@ -72,6 +75,7 @@ class ProxyCURL extends HTTPProxy
 		curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($this->curl, CURLOPT_MAXREDIRS, 10);
 		curl_setopt($this->curl, CURLOPT_HEADER, true);
+		curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, $this->timeout);
 	}
 	
 	private function importHeaders($headers)

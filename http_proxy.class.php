@@ -43,6 +43,7 @@ interface IHTTPProxy
 abstract class HTTPProxy implements IHTTPProxy
 {
 	protected $uri;
+	protected $timeout = 30;
 	
 	public function __construct($uri)
 	{
@@ -75,6 +76,11 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function setUri($uri)
 	{
 		$this->uri = $uri;
+	}
+	
+	public function setTimeout($secs)
+	{
+		$this->timeout = $secs;
 	}
 }
 ?>
