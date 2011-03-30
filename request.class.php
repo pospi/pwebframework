@@ -262,7 +262,7 @@ abstract class Request
 		if (Request::$REQUEST_MODE === null) {
 			if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 				Request::$REQUEST_MODE = Request::RM_AJAX;
-			} else if (!isset($_SERVER['HTTP_USER_AGENT'])) {
+			} else if (sizeof($_SERVER['argv'])) {
 				Request::$REQUEST_MODE = Request::RM_CLI;
 			} else {
 				Request::$REQUEST_MODE = Request::RM_HTTP;
