@@ -19,4 +19,6 @@
 	require_once('session.class.php');
 	
 	require_once('http_proxy.class.php');
+	
+	require_once('quicktemplate.class.php');
 ?>

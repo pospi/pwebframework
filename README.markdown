@@ -12,18 +12,25 @@ Features
 - Request interrogation
     - Input sanitisation (from GET, POST, COOKIE etc)
     - Request method determination (HTTP, AJAX, CLI)
+    - QueryString parsing & redirection
 - Response handling
-    - Header manipulation
     - Heavily genericised output handling in the form of ordered blocks
+- Header manipulation
+	- Simplified retrieval and encoding
+	- Mutators for setting redirects, controlling caching and other common tasks
 - Session management
     - Creation, destruction (login / logout)
     - Stacking (allows user impersonation, etc)
+- Socket requests
+	- Abstract HTTP request interface and various implementations
+- Templating
+	- Extremely fast and simple PHP-based templating class
 
 
 Todo
 ----
-- Simplified expiry and download headers
-- Nested output handling, grouping etc
+- Simplified header mutators
+- More socket request implementations
 
 
 License
