@@ -17,7 +17,7 @@
 	@author		Sam Pospischil <pospi@spadgos.com>
   ===============================================================================*/
  
-class Headers
+class Headers implements ArrayAccess
 {
 	// aside from server variables prefixed with 'HTTP_', these will also be retrieved by Request as HTTP header values
 	public static $OTHER_HTTP_HEADERS = array('CONTENT_TYPE', 'CONTENT_LENGTH');
@@ -82,8 +82,8 @@ class Headers
 	}
 
 	//========================================================================
-	
-	public function get($key)
+
+	public function offsetGet($key)
 	{
 		$key = strtolower($key);
 		return isset($this->fields[$key]) ? $this->fields[$key] : false;
@@ -92,7 +92,7 @@ class Headers
 	/**
 	 * Sets a header's value within the current header block ONLY
 	 */
-	public function set($k, $v)
+	public function offsetSet($k, $v)
 	{
 		$k = strtolower($k);
 		if ($k == '__previousheader') {
@@ -103,6 +103,16 @@ class Headers
 			$this->fields[$k] = $v;
 		}
 		return true;
+	}
+
+	public function offsetExists($key)
+	{
+		return isset($this->fields[$key]);
+	}
+
+	public function offsetUnset($key)
+	{
+		unset($this->fields[$key]);
 	}
 	
 	/**
@@ -124,7 +134,7 @@ class Headers
 			$arr[$k] = $v;
 		}
 		if (isset($arr['__previousheader'])) {
-			return $this->set($k, $v, $arr['__previousheader']);
+			return $this->override($k, $v, $arr['__previousheader']);
 		}
 		return true;
 	}

@@ -242,7 +242,7 @@ abstract class Request
 			foreach ($_SERVER as $k => $v) {
 				if (strpos($k, 'HTTP_') === 0 || in_array($k, Headers::$OTHER_HTTP_HEADERS)) {
 					$k = str_replace(array('HTTP_', '_'), array('', '-'), $k);
-					Request::$HTTP_HEADERS->set($k, $v);
+					Request::$HTTP_HEADERS[$k] = $v;
 				}
 			}
 		}

@@ -15,6 +15,11 @@
 			string-convertible objects, with specific data formatting for request
 			mode types handled internally. Additionally, output blocks may be
 			nested in subarrays and manipulated as related sets.
+	
+	All block-related functions accept index paramters of any of the forms:
+		array key (int or string)	- array index in output blocks. first-level depth only.
+		array(k1, k2, k3, ...kN)	- array of indices into child block arrays
+		"k1.k2.k3.k4"				- period-separated block index
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
 	@date		2010-07-08
@@ -211,7 +216,7 @@ class Response
 	// set an HTTP header directly
 	public function setHeader($key, $val)
 	{
-		$this->headers->set($key, $val);
+		$this->headers[$key] = $val;
 	}
 	public function addHeader($key, $val)
 	{
@@ -220,7 +225,7 @@ class Response
 	
 	public function getHeader($key)
 	{
-		return $this->headers->get($key);
+		return $this->headers[$key];
 	}
 	
 	public function sendHeaders($headers = null)
