@@ -11,7 +11,7 @@ class ProxyCURL extends HTTPProxy
 {
 	private $curl = null;
 	
-	public function get($headers = array())
+	public function get($headers = null)
 	{
 		$this->importHeaders($headers);
 		curl_setopt($this->curl, CURLOPT_HTTPGET, true);
@@ -20,19 +20,21 @@ class ProxyCURL extends HTTPProxy
 		return $this->makeRequest();
 	}
 	
-	public function post($data, $headers = array())
+	public function post($data, $headers = null)
 	{
 		$this->importHeaders($headers);
 		curl_setopt($this->curl, CURLOPT_HTTPGET, false);
 		curl_setopt($this->curl, CURLOPT_POST, true);
-		curl_setopt($this->curl, CURLOPT_POSTFIELDS, Headers::toString($data));
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, Request::getQueryString($data));
 		
 		return $this->makeRequest();
 	}
 	
-	public function head($headers = array())
+	public function head($headers = null)
 	{
 		$this->importHeaders($headers);
+		curl_setopt($this->curl, CURLOPT_HTTPGET, true);
+		curl_setopt($this->curl, CURLOPT_POST, false);
 		curl_setopt($this->curl, CURLOPT_NOBODY, true);
 		
 		return $this->makeRequest();
@@ -80,7 +82,9 @@ class ProxyCURL extends HTTPProxy
 	
 	private function importHeaders($headers)
 	{
-		$headers = explode("\n", Headers::toString($headers));
+		if (!$headers) return;
+		
+		$headers = explode("\n", $headers->toString());
 		foreach ($headers as $i => $header) {
 			if (empty($header)) {
 				unset($headers[$i]);

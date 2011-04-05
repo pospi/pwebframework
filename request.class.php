@@ -237,14 +237,14 @@ abstract class Request
 	private static function storeHeaders()
 	{
 		if (Request::$HTTP_HEADERS === null) {
-			$headers = array();
+			Request::$HTTP_HEADERS = new Headers();
+
 			foreach ($_SERVER as $k => $v) {
 				if (strpos($k, 'HTTP_') === 0 || in_array($k, Headers::$OTHER_HTTP_HEADERS)) {
 					$k = str_replace(array('HTTP_', '_'), array('', '-'), $k);
-					$headers[strtolower($k)] = $v;
+					Request::$HTTP_HEADERS->set($k, $v);
 				}
 			}
-			Request::$HTTP_HEADERS = $headers;
 		}
 	}
 

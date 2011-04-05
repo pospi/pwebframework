@@ -23,11 +23,11 @@ interface IHTTPProxy
 	
 	// GET/POST/HEAD http method wrappers
 	//	Each should return the result of the query, or FALSE on failure
-	public function get($headers = array());
+	public function get($headers = null);
 	
-	public function post($data, $headers = array());
+	public function post($data, $headers = null);
 	
-	public function head($headers = array());
+	public function head($headers = null);
 	
 	// :TODO: put, delete
 	

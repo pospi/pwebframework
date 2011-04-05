@@ -29,8 +29,13 @@ class Response
 	const RESP_JSON		= 1;
 	const RESP_PLAINTEXT= 2;
 	
-	private	$headers = array();
+	private	$headers = null;
 	private $outputBlocks = array();
+
+	public function __construct()
+	{
+		$this->headers = new Headers();
+	}
 	
 	//==========================================================================
 	//		Output handling
@@ -206,46 +211,24 @@ class Response
 	// set an HTTP header directly
 	public function setHeader($key, $val)
 	{
-		Headers::setHeader($this->headers, $key, $val);
+		$this->headers->set($key, $val);
 	}
 	public function addHeader($key, $val)
 	{
-		Headers::addHeader($this->headers, $key, $val);
+		$this->headers->add($key, $val);
 	}
 	
 	public function getHeader($key)
 	{
-		return Headers::getHeader($this->headers, $key);
+		return $this->headers->get($key);
 	}
 	
 	public function sendHeaders($headers = null)
 	{
-		Response::checkHeaders();	// die if output started
 		if (!isset($headers)) {
 			$headers = $this->headers;
 		}
-		
-		// send earlier headers first
-		if (isset($headers['__previousheader'])) {
-			$prev = $headers['__previousheader'];
-			unset($headers['__previousheader']);
-			
-			Response::sendHeaders($prev);
-		}
-		
-		if (isset($headers[0])) {
-			header(Headers::getStatusLine($headers[0]));
-			unset($headers[0]);
-		}
-		
-		foreach ($headers as $k => $v) {
-			if (!is_array($v)) {
-				$v = array($v);
-			}
-			foreach ($v as $val) {
-				header(ucwords($k) . ": " . $val);
-			}
-		}
+		$headers->send();
 	}
 
 	// Call this to abort a script if headers have already been sent
