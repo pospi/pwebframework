@@ -22,9 +22,11 @@ interface IHTTPProxy
 	public function __construct($url);
 	
 	// GET/POST/HEAD http method wrappers
+	//	$headers is an object of type Headers
 	//	Each should return the result of the query, or FALSE on failure
 	public function get($headers = null);
 	
+	//	$data is an array of data to POST
 	public function post($data, $headers = null);
 	
 	public function head($headers = null);
@@ -36,6 +38,9 @@ interface IHTTPProxy
 	
 	// set an intermediate proxy for the connection
 	public function setHTTPProxy($uri, $user, $password);
+
+	// retrieve any error messages
+	public function getError();
 }
 
 //==============================================================================

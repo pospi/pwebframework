@@ -57,6 +57,11 @@ class ProxyCURL extends HTTPProxy
 		$this->curl = curl_init($uri);
 		parent::setUri($uri);
 	}
+
+	public function getError()
+	{
+		return curl_error($this->curl);
+	}
 	
 	//==========================================================================
 	
@@ -65,7 +70,7 @@ class ProxyCURL extends HTTPProxy
 		$this->prepareCurl($postMethod);
 		
 		$response = curl_exec($this->curl);
-		curl_close($this->curl);				// :TODO: persistent connections?
+		// we do not close the cURL resource so that we can interrogate it later
 		
 		return $response;
 	}
@@ -78,6 +83,9 @@ class ProxyCURL extends HTTPProxy
 		curl_setopt($this->curl, CURLOPT_MAXREDIRS, 10);
 		curl_setopt($this->curl, CURLOPT_HEADER, true);
 		curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, $this->timeout);
+
+		//curl_setopt($this->curl, CURLOPT_STDERR, fopen(dirname(__FILE__) . '/curl.log', 'w'));
+		//curl_setopt($this->curl, CURLOPT_VERBOSE, true);
 	}
 	
 	private function importHeaders($headers)
