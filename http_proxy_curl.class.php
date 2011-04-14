@@ -52,9 +52,10 @@ class ProxyCURL extends HTTPProxy
 	public function setUri($uri)
 	{
 		if ($this->curl) {
-			curl_close($this->curl);
+			curl_setopt($this->curl, CURLOPT_URL, $uri);
+		} else {
+			$this->curl = curl_init($uri);
 		}
-		$this->curl = curl_init($uri);
 		parent::setUri($uri);
 	}
 

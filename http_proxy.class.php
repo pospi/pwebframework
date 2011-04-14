@@ -8,9 +8,15 @@
 	This will load an appropriate subclass of HTTPProxy, given the restrictions
 	present in your current server environment.
 	
-	These objects are fairly stateless, only the target URI for the request is
-	stored. The returned response data is the return value from each of the HTTP
-	method wrapper functions.
+	These objects should maintain all internal state between request actions.
+	The returned response data is the return value from each of the HTTP method
+	wrapper functions.
+
+	Child classes should follow redirects internally, mimicing cURL's
+	CURLOPT_FOLLOWLOCATION option to follow any Location: headers. The returned
+	request content should be in the same format as with cURL - namely, any
+	redirects encountered should have their header block output before subsequent
+	request data.
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
   ===============================================================================*/
@@ -60,6 +66,9 @@ abstract class HTTPProxy implements IHTTPProxy
 		if (function_exists('curl_init')) {
 			require_once('http_proxy_curl.class.php');
 			return new ProxyCURL($url);
+		} else if (function_exists('fsockopen')) {
+			require_once('http_proxy_socket.class.php');
+			return new ProxySocket($url);
 		} else {
 			return false;		// no proxy for you, sorry!
 		}
@@ -81,6 +90,7 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function setUri($uri)
 	{
 		$this->uri = $uri;
+		return true;
 	}
 	
 	public function setTimeout($secs)
