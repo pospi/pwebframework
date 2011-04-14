@@ -17,7 +17,7 @@
 	@author		Sam Pospischil <pospi@spadgos.com>
   ===============================================================================*/
  
-class Headers implements ArrayAccess
+class Headers implements ArrayAccess, Iterator, Countable
 {
 	// aside from server variables prefixed with 'HTTP_', these will also be retrieved by Request as HTTP header values
 	public static $OTHER_HTTP_HEADERS = array('CONTENT_TYPE', 'CONTENT_LENGTH');
@@ -77,7 +77,7 @@ class Headers implements ArrayAccess
 	public function __construct($headers = null)
 	{
 		if ($headers) {
-			$this->fields = $this->parse($headers);
+			$this->parse($headers);
 		}
 	}
 
@@ -184,6 +184,37 @@ class Headers implements ArrayAccess
 
 		return true;
 	}
+
+	//========================================================================
+	//	Iterator implementation. Iterates first level header block only. :TODO: iterate all stuff
+
+	public function rewind() {
+		reset($this->fields);
+	}
+
+	public function current() {
+		return current($this->fields);
+	}
+
+	public function key() {
+		return key($this->fields);
+	}
+
+	public function next() {
+		$next = next($this->fields);
+		if (key($this->fields) == '__previousheader') {
+			return next($this->fields);
+		}
+		return $next;
+	}
+
+	public function valid() {
+		return key($this->fields) !== null;
+	}   
+
+	public function count() {
+		return count($this->fields);
+	}
 	
 	//================================================================================================================
 	
@@ -213,7 +244,7 @@ class Headers implements ArrayAccess
 			if (empty($line)) {			// keep going. there may be another header block coming.
 				$nextLine = next($headers);
 				prev($headers);
-				$nextIsStatus = preg_match('/^http\/(\d\.\d)\s+/i', $nextLine);
+				$nextIsStatus = preg_match('/(^http\/(\d\.\d)\s+)|(\s+http\/(\d\.\d)$)/i', $nextLine);
 				unset($headers[$i]);
 				if (!$nextIsStatus) {
 					break;
@@ -224,14 +255,22 @@ class Headers implements ArrayAccess
 			
 			$parts = explode(":", $line, 2);
 			if (!$parts[1]) {
-				$statusCode = intval(preg_replace('/^http\/(\d|\.)+\s+/i', '', $parts[0]));
+				$statusCode = preg_replace('/^http\/(\d\.\d)\s+/i', '', $parts[0], -1, $count);
 				
+				if ($count > 0) {
+					// response header
+					$requestLine = intval($statusCode);
+				} else {
+					// request header
+					$requestLine = preg_replace('/\s+http\/(\d\.\d)/i', '', $parts[0]) . ' HTTP/1.1';
+				}
+
 				// each time we find a new status header, stack the old block
 				if (!sizeof($this->fields)) {
-					$this->fields[] = $statusCode;
+					$this->fields[] = $requestLine;
 				} else {
 					$this->fields = array(
-						0 => $statusCode,
+						0 => $requestLine,
 						'__previousheader' => $this->fields
 					);
 				}
@@ -272,7 +311,11 @@ class Headers implements ArrayAccess
 		unset($headerData['__previousheader']);
 		
 		if (isset($headerData[0])) {
-			$string = Headers::getStatusLine($headerData[0]) . "\n";
+			if (is_numeric($headerData[0])) {
+				$string = Headers::getStatusLine($headerData[0]) . "\n";	// response headers
+			} else {
+				$string = $headerData[0] . "\n";							// request headers
+			}
 			unset($headerData[0]);
 		}
 		
@@ -329,7 +372,7 @@ class Headers implements ArrayAccess
  
 	public function setStatusCode($code)
 	{
-		return $this->fields[0] = intval($code);
+		$this->fields[0] = intval($code);
 	}
  
 	public function getStatusCode()
@@ -340,6 +383,26 @@ class Headers implements ArrayAccess
 	public function ok()
 	{
 		return isset($this->fields[0]) && Headers::isOk($this->fields[0]);
+	}
+
+	public function isRedirect()
+	{
+		return isset($this->fields[0]) && Headers::isRedirectCode($this->fields[0]);
+	}
+
+	//============================================================================================================
+
+	public function setRequestPathAndMethod($path, $verb = "GET")
+	{
+		$this->fields[0] = strtoupper($verb) . ' ' . $path . ' HTTP/1.1';
+	}
+
+	public function getRequestPathAndMethod()
+	{
+		if (isset($this->fields[0]) && preg_match('/^([A-Z]+)\s+(.*)\s+http\/\d\.\d$/iU', $this->fields[0], $matches)) {
+			return array($matches[2], $matches[1]);
+		}
+		return null;
 	}
 
 	//============================================================================================================
@@ -353,6 +416,11 @@ class Headers implements ArrayAccess
 	public static function isOk($code)
 	{
 		return $code >= 200 && $code < 400 && $code != 305;
+	}
+
+	public static function isRedirectCode($code)
+	{
+		return $code >= 300 && $code < 400 && $code != 305;
 	}
 }
 ?>
