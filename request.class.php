@@ -271,6 +271,30 @@ abstract class Request
 	}
 
 	//==================================================================================================================
+	//		Other useful stuff
+	
+	// Get remote IP address, and attempt to provide 'real' address when a proxy is involved
+	public static function getRemoteIP()
+	{
+		return isset($_SERVER['HTTP_CLIENT_IP']) ? $_SERVER['HTTP_CLIENT_IP'] : (
+			isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']
+		);
+	}
+
+	// retrieve the document root without relying on apache's environment var (which is obviously not present under IIS)
+	// :WARNING: this method will not work under CLI
+	public static function getDocumentRoot()
+	{
+		if (isset($_SERVER['SCRIPT_FILENAME'])) {
+			return str_replace( '\\', '/', substr($_SERVER['SCRIPT_FILENAME'], 0, 0 - strlen($_SERVER['PHP_SELF'])));
+		};
+		if(isset($_SERVER['PATH_TRANSLATED'])) {
+			return str_replace( '\\', '/', substr(str_replace('\\\\', '\\', $_SERVER['PATH_TRANSLATED']), 0, 0 - strlen($_SERVER['PHP_SELF'])));
+		};
+		return $_SERVER['DOCUMENT_ROOT'];
+	}
+
+	//==================================================================================================================
 	//		Utility methods & internals
 
 	/**
