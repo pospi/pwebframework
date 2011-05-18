@@ -112,7 +112,7 @@ class Session implements ArrayAccess
 				$params["secure"]
 			);
 		}
-		session_unset();
+		$_SESSION = array();
 		session_destroy();
 	}
 
