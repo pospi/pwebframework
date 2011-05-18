@@ -10,7 +10,7 @@
 	@author		Sam Pospischil <pospi@spadgos.com>
 	@date		2010-04-22
   ===============================================================================*/
- 
+
 require_once('headers.class.php');
 
 // Constants for request datatype casting.
@@ -91,7 +91,7 @@ abstract class Request
 
 	//==================================================================================================================
 	//		QueryString handling
-	
+
 	/**
 	 * Rewrite a URL in one step, using the inner functions below.
 	 *
@@ -108,17 +108,17 @@ abstract class Request
 			$newBase = $_SERVER['PHP_SELF'];
 		}
 		$newParams = Request::modifyQueryString($oldParams, $newParams);
-		
+
 		return Request::getURLString($newBase, $newParams);
 	}
-	
+
 	// retrieve the current page query string as it exists (an array)
 	public static function getQueryParams()
 	{
 		Request::storeQueryParams();
 		return Request::$QUERY_PARAMS;
 	}
-	
+
 	/**
 	 * Modify values in the current query string. Handy for changing where
 	 * forms send to when you want to keep the current GET params intact.
@@ -154,7 +154,7 @@ abstract class Request
 			$arr		= &Request::$QUERY_PARAMS;
 			$changes	= $a[0];
 		}
-		
+
 		foreach ($changes as $i => $j) {
 			if ($j === null) {
 				unset($arr[$i]);
@@ -162,10 +162,10 @@ abstract class Request
 				$arr[$i] = $j;
 			}
 		}
-			
+
 		return $arr;
 	}
-	
+
 	/**
 	 * retrieve the final (possibly modified) page query string, as a string
 	 *
@@ -184,7 +184,7 @@ abstract class Request
 		}
 		return http_build_query($arr);
 	}
-	
+
 	/**
 	 * Retrieves a queryString using getQueryString(), and prepends the page
 	 * URL specified. If ommitted, the current page's url is used.
@@ -200,7 +200,7 @@ abstract class Request
 		$page = $_SERVER['PHP_SELF'];
 		$params = null;
 		$a = func_get_args();
-		
+
 		if (sizeof($a) == 1) {
 			if (is_array($a[0])) {
 				$params = $a[0];
@@ -210,12 +210,12 @@ abstract class Request
 		} else if (sizeof($a) == 2) {
 			list($page, $params) = $a;
 		}
-		
+
 		$query = Request::getQueryString($params);
-		
+
 		return $query ? $page . '?' . Request::getQueryString($params) : $page;
 	}
-	
+
 	private static function storeQueryParams()
 	{
 		if (Request::$QUERY_PARAMS === null) {
@@ -225,13 +225,13 @@ abstract class Request
 
 	//==================================================================================================================
 	//		Header handling
-	
+
 	public static function getHeaders()
 	{
 		Request::storeHeaders();
 		return Request::$HTTP_HEADERS;
 	}
-	
+
 	// this method works regardless of the server environment. Headers are stored with lowercase keys, in the same
 	// format as used by the Headers class.
 	private static function storeHeaders()
@@ -262,7 +262,7 @@ abstract class Request
 		if (Request::$REQUEST_MODE === null) {
 			if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 				Request::$REQUEST_MODE = Request::RM_AJAX;
-			} else if (sizeof($_SERVER['argv'])) {
+			} else if (PHP_SAPI == 'cli' || (substr(PHP_SAPI, 0, 3) == 'cgi' && empty($_SERVER['REQUEST_URI']))) {
 				Request::$REQUEST_MODE = Request::RM_CLI;
 			} else {
 				Request::$REQUEST_MODE = Request::RM_HTTP;
@@ -272,7 +272,7 @@ abstract class Request
 
 	//==================================================================================================================
 	//		Other useful stuff
-	
+
 	// Get remote IP address, and attempt to provide 'real' address when a proxy is involved
 	public static function getRemoteIP()
 	{
@@ -395,7 +395,7 @@ abstract class Request
 		$place = (($from === $_GET || isset($_SERVER['argv']) && $from === $_SERVER['argv']) ? 'GET' : ($from === $_POST ? 'POST' : ($from === $_COOKIE ? 'COOKIE' : 'REFERENCED')));
 		trigger_error(str_replace('%SOURCE%', $place, $msg), ($critical ? E_USER_ERROR : E_USER_WARNING));
 	}
-	
+
 	// :NOTE: we count arrays full of empty strings or NULL values as empty
 	private static function arrayEmpty($arr)
 	{
