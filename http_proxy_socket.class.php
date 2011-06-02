@@ -22,22 +22,22 @@ class ProxySocket extends HTTPProxy
 	private $proxyHost = false;
 	private $proxyPort = 8080;
 	private $proxyHeaders = null;		// these are sent in addition to base headers
-	
+
 	public function get($headers = null)
 	{
 		return $this->sendRequest($headers);
 	}
-	
+
 	public function post($data, $headers = null)
 	{
 		return $this->sendRequest($headers, "POST", Request::getQueryString($data));
 	}
-	
+
 	public function head($headers = null)
 	{
 		return $this->sendRequest($headers, "HEAD");
 	}
-	
+
 	public function setHTTPProxy($uri, $user, $password)
 	{
 		list($this->proxyHost, $this->proxyPort) = $this->parseUri($uri);
@@ -47,7 +47,7 @@ class ProxySocket extends HTTPProxy
 			$this->proxyHeaders['proxy-authorization'] = 'Basic ' . base64_encode($user . ':' . $password);
 		}
 	}
-	
+
 	public function setUri($uri)
 	{
 		list($this->host, $this->port, $this->path) = $this->parseUri($uri);
@@ -59,7 +59,7 @@ class ProxySocket extends HTTPProxy
 			fclose($this->conn);
 			$this->conn = null;
 		}
-		
+
 		return parent::setUri($uri);
 	}
 
@@ -67,7 +67,7 @@ class ProxySocket extends HTTPProxy
 	{
 		return $this->lastError;
 	}
-	
+
 	//==========================================================================
 
 	private function makeConnection()
@@ -113,10 +113,12 @@ class ProxySocket extends HTTPProxy
 		}
 
 		// check for a redirect
-		$responseHeaders = new Headers($response);
-		if ($responseHeaders->isRedirect()) {
-			$this->setUri($responseHeaders['Location']);
-			return $this->sendRequest($headers, $verb, $contents, $responseHeaders);
+		if ($this->followRedirs) {
+			$responseHeaders = new Headers($response);
+			if ($responseHeaders->isRedirect()) {
+				$this->setUri($responseHeaders['Location']);
+				return $this->sendRequest($headers, $verb, $contents, $responseHeaders);
+			}
 		}
 
 		return isset($prevHeaders) ? $prevHeaders->toString() . "\r\n" . $response : $response;
