@@ -294,6 +294,13 @@ abstract class Request
 		return $_SERVER['DOCUMENT_ROOT'];
 	}
 
+	// only works under apache
+	public static function getFullURI($withQuery = true)
+	{
+		$start = empty($_SERVER['HTTPS']) ? 'http://' : 'https://';
+		return $start . $_SERVER['HTTP_HOST'] . ($_SERVER['SERVER_PORT'] == 80 ? '' : ':' . $_SERVER['SERVER_PORT']) . ($withQuery ? $_SERVER['REQUEST_URI'] : substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?')));
+	}
+
 	//==================================================================================================================
 	//		Utility methods & internals
 
