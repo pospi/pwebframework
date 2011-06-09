@@ -186,31 +186,53 @@ abstract class Request
 	}
 
 	/**
-	 * Retrieves a queryString using getQueryString(), and prepends the page
-	 * URL specified. If ommitted, the current page's url is used.
+	 * Generates a queryString using getQueryString(), and prepends the page
+	 * URL specified.
+	 *
+	 * The URL may contain its own querystring, in which case parameters passed in (if there)
+	 * will override those already encoded. If no params are passed, the encoded parameters will
+	 * override those passed in to the request.
 	 *
 	 * Accepts 4 parameter formats:
-	 * 	[]				<-- returns the current page and querystring
+	 * 	[]				<-- returns the current page and querystring (consider using getFullURI())
 	 * 	[string]		<-- returns the current querystring pointed to a new page
 	 * 	[array]			<-- returns the current page with passed in querystring
 	 * 	[string, array]	<-- returns URL for the passed in page and querystring
 	 */
 	public static function getURLString()
 	{
-		$page = $_SERVER['PHP_SELF'];
-		$params = null;
+
+		$page = isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : '';	// we *could* use getFullURI() to get this, but this method keeps links relative
+		$params = array();
+		$paramsPassed = false;
 		$a = func_get_args();
 
 		if (sizeof($a) == 1) {
-			if (is_array($a[0])) {
+			if (is_array($a[0])) {	// current page, querystring passed
 				$params = $a[0];
-			} else {
+				$paramsPassed = true;
+			} else {				// different page, same querystring
 				$page = $a[0];
 			}
-		} else if (sizeof($a) == 2) {
+		} else if (sizeof($a) == 2) {	// both different
 			list($page, $params) = $a;
+			$paramsPassed = true;
 		}
 
+		// check page for existing querystring
+		$qPos = strpos($page, '?');
+		if ($qPos !== false) {
+			$currQuery = substr($page, $qPos + 1);
+			parse_str($currQuery, $currParams);
+			$params = array_merge($currParams, $params);
+			$page = substr($page, 0, $qPos);
+		}
+
+		// if no query params were passed in, take the request ones as our base
+		if (!$paramsPassed) {
+			Request::storeQueryParams();
+			$params = array_merge(Request::$QUERY_PARAMS, $params);
+		}
 		$query = Request::getQueryString($params);
 
 		return $query ? $page . '?' . Request::getQueryString($params) : $page;
