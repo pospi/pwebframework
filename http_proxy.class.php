@@ -17,7 +17,7 @@
 	request content should be in the same format as with cURL - namely, any
 	redirects encountered should have their header block output before subsequent
 	request data.
-	This behaviour can be disabled with
+	This behaviour can be disabled with followRedirects(false)
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
   ===============================================================================*/
@@ -28,9 +28,14 @@ interface IHTTPProxy
 {
 	public function __construct($url);
 
-	// GET/POST/HEAD http method wrappers
-	//	$headers is an object of type Headers
-	//	Each should return the result of the query, or FALSE on failure
+	/**
+	 * GET/POST/HEAD http method wrappers
+	 *	$headers is an object of type Headers
+	 *	Each should return the result of the query, or FALSE on failure
+	 *
+	 * :NOTE: all these methods have a *Document variant, which will
+	 * decode headers into $this->headers and just return the document body
+	 */
 	public function get($headers = null);
 
 	//	$data is an array of data to POST
@@ -51,6 +56,10 @@ interface IHTTPProxy
 
 	// sets whether or not to follow HTTP redirects
 	public function followRedirects($follow = true);
+
+	// resets the proxy to a clean state, ready for a new request
+	// not all implementations will need to extend this
+	public function reset();
 }
 
 //==============================================================================
@@ -60,6 +69,8 @@ abstract class HTTPProxy implements IHTTPProxy
 	protected $uri;
 	protected $timeout = 30;
 	protected $followRedirs = true;
+
+	public $headers = null;		// Headers object of the previous request
 
 	public function __construct($uri)
 	{
@@ -106,6 +117,39 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function followRedirects($follow = true)
 	{
 		$this->followRedirs = (bool)$follow;
+	}
+
+	// clean headers from previous result parsing
+	public function reset()
+	{
+		$this->headers = null;
+	}
+
+	//==========================================================================
+	// HTTP verb wrappers to automatically parse headers
+
+	public function getDocument($headers = null)
+	{
+		$result = $this->get($headers);
+
+		$this->headers = new Headers();
+		return $this->headers->parseDocument($result);
+	}
+
+	public function postDocument($data, $headers = null)
+	{
+		$result = $this->post($data, $headers);
+
+		$this->headers = new Headers();
+		return $this->headers->parseDocument($result);
+	}
+
+	public function readHead($headers = null)
+	{
+		$result = $this->head($headers);
+
+		$this->headers = new Headers();
+		return $this->headers->parseDocument($result);
 	}
 }
 ?>

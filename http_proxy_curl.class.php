@@ -70,6 +70,12 @@ class ProxyCURL extends HTTPProxy
 		curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, $follow);
 	}
 
+	public function reset()
+	{
+		$this->setUri($this->uri);
+		parent::reset();
+	}
+
 	//==========================================================================
 
 	private function makeRequest($postMethod = false)
