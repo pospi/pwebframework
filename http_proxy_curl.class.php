@@ -41,6 +41,25 @@ class ProxyCURL extends HTTPProxy
 		return $this->makeRequest();
 	}
 
+	public function put($data, $headers = null)
+	{
+		// generate PUT data
+		$putData = Request::getQueryString($data);
+
+		// create new headers if not set, and send content length
+		if (!isset($headers)) {
+			$headers = new Headers();
+		}
+		$headers['content-length'] = strlen($putData);
+
+		$this->importHeaders($headers);
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, $putData);
+
+		return $this->makeRequest();
+	}
+
 	public function setHTTPProxy($uri, $user, $password)
 	{
 		$this->proxy = array($uri, $user, $password);
@@ -93,7 +112,7 @@ class ProxyCURL extends HTTPProxy
 	private function prepareCurl($post = false)
 	{
 		if (count($this->proxy)) {
-			$this->setHTTPProxy($this->proxy[0], $this->proxy[1], $this->proxy[2])
+			$this->setHTTPProxy($this->proxy[0], $this->proxy[1], $this->proxy[2]);
 		}
 		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->curl, CURLOPT_AUTOREFERER, true);

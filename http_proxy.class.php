@@ -33,8 +33,9 @@ interface IHTTPProxy
 	 *	$headers is an object of type Headers
 	 *	Each should return the result of the query, or FALSE on failure
 	 *
-	 * :NOTE: all these methods have a *Document variant, which will
+	 * :NOTE: all these methods have a variants defined further down, which will
 	 * decode headers into $this->headers and just return the document body
+	 * @see getDocument(), postData(), putData(), putRawData() and readHeaders()
 	 */
 	public function get($headers = null);
 
@@ -136,7 +137,7 @@ abstract class HTTPProxy implements IHTTPProxy
 		return $this->headers->parseDocument($result);
 	}
 
-	public function postDocument($data, $headers = null)
+	public function postData($data, $headers = null)
 	{
 		$result = $this->post($data, $headers);
 
@@ -144,9 +145,18 @@ abstract class HTTPProxy implements IHTTPProxy
 		return $this->headers->parseDocument($result);
 	}
 
-	public function readHead($headers = null)
+	public function readHeaders($headers = null)
 	{
 		$result = $this->head($headers);
+
+		$this->headers = new Headers();
+		$this->headers->parseDocument($result);
+		return $this->headers;
+	}
+
+	public function putData($data, $headers = null)
+	{
+		$result = $this->put($data, $headers);
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
