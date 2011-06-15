@@ -10,6 +10,7 @@
 class ProxyCURL extends HTTPProxy
 {
 	private $curl = null;
+	private $proxy = array();		// stores proxy details between requests
 
 	public function get($headers = null)
 	{
@@ -42,6 +43,7 @@ class ProxyCURL extends HTTPProxy
 
 	public function setHTTPProxy($uri, $user, $password)
 	{
+		$this->proxy = array($uri, $user, $password);
 		curl_setopt($this->curl, CURLOPT_PROXY, $uri);
 		curl_setopt($this->curl, CURLOPT_PROXYUSERPWD, "$user:$password");
 		//curl_setopt($this->curl, CURLOPT_HTTPPROXYTUNNEL, true);
@@ -90,6 +92,9 @@ class ProxyCURL extends HTTPProxy
 
 	private function prepareCurl($post = false)
 	{
+		if (count($this->proxy)) {
+			$this->setHTTPProxy($this->proxy[0], $this->proxy[1], $this->proxy[2])
+		}
 		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->curl, CURLOPT_AUTOREFERER, true);
 		curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, $this->followRedirs);
