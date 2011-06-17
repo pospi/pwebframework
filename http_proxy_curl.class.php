@@ -60,6 +60,18 @@ class ProxyCURL extends HTTPProxy
 		return $this->makeRequest();
 	}
 
+	public function delete($headers = null, $data = null)
+	{
+		$this->importHeaders($headers);
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+		if ($data) {
+			curl_setopt($this->curl, CURLOPT_POSTFIELDS, $data);
+		}
+
+        return $this->makeRequest();
+	}
+
 	public function setHTTPProxy($uri, $user, $password)
 	{
 		$this->proxy = array($uri, $user, $password);

@@ -38,6 +38,16 @@ class ProxySocket extends HTTPProxy
 		return $this->sendRequest($headers, "HEAD");
 	}
 
+	public function put($data, $headers = null)
+	{	
+		// :TODO:
+	}
+
+	public function delete($headers = null)
+	{
+		// :TODO:
+	}
+
 	public function setHTTPProxy($uri, $user, $password)
 	{
 		list($this->proxyHost, $this->proxyPort) = $this->parseUri($uri);

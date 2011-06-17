@@ -44,7 +44,11 @@ interface IHTTPProxy
 
 	public function head($headers = null);
 
-	// :TODO: put, delete
+	// $data is raw string data to send. You may wish to urlencode array data similarly to POSTing in some situations.
+	public function put($rawData, $headers = null);
+
+	// some DELETE requests may require you to send data - this is sent as a raw string
+	public function delete($headers = null, $rawData = null);
 
 	// send a Response object
 	public function sendResponse($response, $method = 'GET');
@@ -157,6 +161,14 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function putData($data, $headers = null)
 	{
 		$result = $this->put($data, $headers);
+
+		$this->headers = new Headers();
+		return $this->headers->parseDocument($result);
+	}
+
+	public function deleteDocument($headers = null, $rawData = null)
+	{
+		$result = $this->delete($headers, $rawData);
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
