@@ -43,19 +43,16 @@ class ProxyCURL extends HTTPProxy
 
 	public function put($data, $headers = null)
 	{
-		// generate PUT data
-		$putData = Request::getQueryString($data);
-
 		// create new headers if not set, and send content length
 		if (!isset($headers)) {
 			$headers = new Headers();
 		}
-		$headers['content-length'] = strlen($putData);
+		$headers['content-length'] = strlen($data);
 
 		$this->importHeaders($headers);
 		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'PUT');
 		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($this->curl, CURLOPT_POSTFIELDS, $putData);
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, $data);
 
 		return $this->makeRequest();
 	}
