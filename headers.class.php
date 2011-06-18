@@ -187,7 +187,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 	}
 
 	//========================================================================
-	//	Iterator implementation. Iterates first level header block only. :TODO: iterate all stuff
+	//	Iterator implementation. Iterates first level header block only.
 
 	public function rewind() {
 		reset($this->fields);
@@ -202,11 +202,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 	}
 
 	public function next() {
-		$next = next($this->fields);
-		if (key($this->fields) == '__previousheader') {
-			return next($this->fields);
-		}
-		return $next;
+		return next($this->fields);
 	}
 
 	public function valid() {
