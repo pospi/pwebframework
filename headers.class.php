@@ -12,7 +12,7 @@
 			- as a string, when only 1 of these headers exists
 			- as an array, when multiple headers exist
 		- header blocks earlier in the request chain recurse upwards
-		  through each array's "__previousheader" value
+		  through each array's "previousheader" member
 	----------------------------------------------------------------------------
 	@author		Sam Pospischil <pospi@spadgos.com>
   ===============================================================================*/
@@ -66,7 +66,9 @@ class Headers implements ArrayAccess, Iterator, Countable
 		505 => 'HTTP Version Not Supported',
 	);
 
-	private $fields = array();
+	protected $fields = array();
+
+	public $previousHeader = null;			// header blocks can be stacked, so that we can parse multiple redirects etc and show the request history
 
 	//================================================================================================================
 
@@ -95,9 +97,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 	public function offsetSet($k, $v)
 	{
 		$k = strtolower($k);
-		if ($k == '__previousheader') {
-			return false;
-		} else if (!$k || $k === '0') {
+		if (!$k || $k === '0') {
 			$this->fields[0] = $v;
 		} else {
 			$this->fields[$k] = $v;
@@ -119,22 +119,12 @@ class Headers implements ArrayAccess, Iterator, Countable
 	 * Sets a header's value, overriding any previously set as well as any
 	 * in previous header blocks.
 	 */
-	public function override($k, $v, &$arr = null)
+	public function override($k, $v)
 	{
-		if (!isset($arr)) {
-			$arr = &$this->fields;
-		}
+		$this[$k] = $v;
 
-		$k = strtolower($k);
-		if ($k == '__previousheader') {
-			return false;
-		} else if (!$k || $k === '0') {
-			$arr[0] = $v;
-		} else {
-			$arr[$k] = $v;
-		}
-		if (isset($arr['__previousheader'])) {
-			return $this->override($k, $v, $arr['__previousheader']);
+		if (isset($this->previousheader)) {
+			return $this->previousheader->override($k, $v);
 		}
 		return true;
 	}
@@ -143,18 +133,26 @@ class Headers implements ArrayAccess, Iterator, Countable
 	 * Adds a value to a header, retaining any previously set.
 	 * If $k is falsey, we are adding a new header block and so the
 	 * current one should be pushed up in the chain.
+	 *
+	 * This function will not override values already present in the current
+	 * header block - it appends them into subarrays instead.
+	 * Use $headerObj[$k] = $v to explicitly set values.
+	 *
+	 * This function will also not override values in previous header blocks,
+	 * if that is desired use override() instead.
+	 *
+	 * :NOTE: This is the only function that directly modifies the header stack
 	 */
 	public function add($k, $v)
 	{
 		$k = strtolower($k);
-		if ($k == '__previousheader') {
-			return false;
-		} else if (!$k || $k === '0') {
-			$previousHeaderBlock = $this->fields;
-			$this->fields = array(
-				0 => $v,
-				'__previousheader' => &$previousHeaderBlock
-			);
+		if (!$k || $k === '0') {
+			// push current block up if we aren't empty
+			if (sizeof($this->fields)) {
+				$this->pushHeaders();
+			}
+
+			$this->fields[0] = $v;
 		} else if (isset($this->fields[$k])) {
 			if (!is_array($this->fields[$k])) {
 				$this->fields[$k] = array($this->fields[$k]);
@@ -163,6 +161,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 		} else {
 			$this->fields[$k] = $v;
 		}
+
 		return true;
 	}
 
@@ -174,13 +173,15 @@ class Headers implements ArrayAccess, Iterator, Countable
 		$headers = &$this->fields;
 
 		$k = strtolower($k);
-		do {
-			if (!$k || $k === '0') {
-				unset($headers[0]);
-			} else {
-				unset($headers[$k]);
-			}
-		} while (isset($headers['__previousheader']) && $headers = &$headers['__previousheader']);
+
+		if (!$k || $k === '0') {
+			unset($headers[0]);
+		} else {
+			unset($headers[$k]);
+		}
+		if (isset($this->previousHeader)) {
+			$this->previousHeader->erase($k);
+		}
 
 		return true;
 	}
@@ -265,15 +266,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 					$requestLine = preg_replace('/\s+http\/(\d\.\d)/i', '', $parts[0]) . ' HTTP/1.1';
 				}
 
-				// each time we find a new status header, stack the old block
-				if (!sizeof($this->fields)) {
-					$this->fields[] = $requestLine;
-				} else {
-					$this->fields = array(
-						0 => $requestLine,
-						'__previousheader' => $this->fields
-					);
-				}
+				$this->add(0, $requestLine);
 			} else {
 				$idx = strtolower(trim($parts[0]));
 				$val = ltrim($parts[1]);
@@ -293,33 +286,50 @@ class Headers implements ArrayAccess, Iterator, Countable
 		return $this->parse($str, true);
 	}
 
+	// push the current header block up into a previously encountered one, recursively
+	public function pushHeaders()
+	{
+		if (isset($this->previousHeader)) {
+			// we have a previous block
+			$this->previousHeader->pushHeaders();	// so keep pushing up
+		} else {
+			// we are the last in the chain
+			$this->previousHeader = new Headers();	// so make a new empty spot for our values
+		}
+
+		// set the previous block's values to ours
+		$this->previousHeader->fields = $this->fields;
+
+		// empty our values out
+		$this->fields = array();
+	}
+
 	//================================================================================================================
 
 	/**
 	 * Converts this set of headers (as generated by parse())
 	 * into a string representation
 	 */
-	public function toString($headerData = null)
+	public function toString()
 	{
 		$string = '';
 
-		if (!isset($headerData)) {
-			$headerData = $this->fields;
+		if (isset($this->previousHeader)) {
+			$string = $this->previousHeader->toString() . "\n";
 		}
 
-		$previous = isset($headerData['__previousheader']) ? $headerData['__previousheader'] : null;
-		unset($headerData['__previousheader']);
-
-		if (isset($headerData[0])) {
-			if (is_numeric($headerData[0])) {
-				$string = Headers::getStatusLine($headerData[0]) . "\n";	// response headers
+		if (isset($this->fields[0])) {
+			if (is_numeric($this->fields[0])) {
+				$string .= Headers::getStatusLine($this->fields[0]) . "\n";	// response headers
 			} else {
-				$string = $headerData[0] . "\n";							// request headers
+				$string .= $this->fields[0] . "\n";							// request headers
 			}
-			unset($headerData[0]);
 		}
 
-		foreach ($headerData as $k => $v) {
+		foreach ($this->fields as $k => $v) {
+			if (!$k) {
+				continue;		// already did status line
+			}
 			if (!is_array($v)) {
 				$v = array($v);
 			}
@@ -328,29 +338,19 @@ class Headers implements ArrayAccess, Iterator, Countable
 			}
 		}
 
-		if ($previous) {
-			$string = $this->toString($previous) . $string;
-		}
-
 		return $string;
 	}
 
 	/**
-	 * Send all stored headers to the remote agent
+	 * Send all stored headers to the remote agent.
+	 * This will not send previous header blocks, only the current one.
 	 */
 	public function send($headerBlock = null)
 	{
 		Response::checkHeaders();	// die if output started
 		if (!isset($headerBlock)) {
+			// sending ourselves.
 			$headerBlock = $this->fields;
-		}
-
-		// send earlier headers first
-		if (isset($headerBlock['__previousheader'])) {
-			$prev = $headerBlock['__previousheader'];
-			unset($headerBlock['__previousheader']);
-
-			$this->send($prev);
 		}
 
 		if (isset($headerBlock[0])) {
