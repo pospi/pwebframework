@@ -59,6 +59,14 @@ class ProxyCURL extends HTTPProxy
 
 	public function delete($headers = null, $data = null)
 	{
+		// create new headers if not set, and send content length
+		if ($data) {
+			if (!isset($headers)) {
+				$headers = new Headers();
+			}
+			$headers['content-length'] = strlen($data);
+		}
+
 		$this->importHeaders($headers);
 		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
 		curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
