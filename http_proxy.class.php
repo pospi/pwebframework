@@ -136,6 +136,9 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function getDocument($headers = null)
 	{
 		$result = $this->get($headers);
+		if ($result === false) {
+			return false;
+		}
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
@@ -144,6 +147,9 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function postData($data, $headers = null)
 	{
 		$result = $this->post($data, $headers);
+		if ($result === false) {
+			return false;
+		}
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
@@ -152,6 +158,9 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function readHeaders($headers = null)
 	{
 		$result = $this->head($headers);
+		if ($result === false) {
+			return false;
+		}
 
 		$this->headers = new Headers();
 		$this->headers->parseDocument($result);
@@ -161,6 +170,9 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function putData($data, $headers = null)
 	{
 		$result = $this->put($data, $headers);
+		if ($result === false) {
+			return false;
+		}
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
@@ -169,6 +181,9 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function deleteDocument($headers = null, $rawData = null)
 	{
 		$result = $this->delete($headers, $rawData);
+		if ($result === false) {
+			return false;
+		}
 
 		$this->headers = new Headers();
 		return $this->headers->parseDocument($result);
