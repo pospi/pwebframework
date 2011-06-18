@@ -333,8 +333,21 @@ class Headers implements ArrayAccess, Iterator, Countable
 			if (!is_array($v)) {
 				$v = array($v);
 			}
+
+			// correctly case header keys
+			// :TODO: what about 'X-XSS-Protection', etc?
+			$capitalizeNext = true;
+			for ($i = 0, $max = strlen($k); $i < $max; $i++) {
+				if (strpos('-', $k[$i]) !== false) {
+					$capitalizeNext = true;
+				} else if ($capitalizeNext) {
+					$capitalizeNext = false;
+					$k[$i] = strtoupper($k[$i]);
+				}
+			}
+
 			foreach ($v as $val) {
-				$string .= ucwords($k) . ": " . $val . "\n";
+				$string .= $k . ": " . $val . "\n";
 			}
 		}
 
