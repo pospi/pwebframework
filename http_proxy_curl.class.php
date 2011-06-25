@@ -21,12 +21,24 @@ class ProxyCURL extends HTTPProxy
 		return $this->makeRequest();
 	}
 
-	public function post($data, $headers = null)
+	public function post($data, $headers = null, $files = array())
 	{
+		if (sizeof($files)) {
+			foreach ($files as $name => &$path) {
+				if (is_array($path)) {	// raw $_FILES data
+					$path = $path['tmp_name'] . ';type=' . $path['type'];
+				}
+				$path = '@' . $path;
+			}
+			$data = array_merge($data, $files);		// set as an array, cURL sends multipart/form-data
+		} else {
+			$data = Request::getQueryString($data);	// set as a string, cURL sends application/x-www-form-urlencoded
+		}
+
 		$this->importHeaders($headers);
 		curl_setopt($this->curl, CURLOPT_HTTPGET, false);
 		curl_setopt($this->curl, CURLOPT_POST, true);
-		curl_setopt($this->curl, CURLOPT_POSTFIELDS, Request::getQueryString($data));
+		curl_setopt($this->curl, CURLOPT_POSTFIELDS, $data);
 
 		return $this->makeRequest();
 	}

@@ -40,7 +40,8 @@ interface IHTTPProxy
 	public function get($headers = null);
 
 	//	$data is an array of data to POST
-	public function post($data, $headers = null);
+	//	$files is an array of input names => file paths, or raw $_FILES array to upload with the request
+	public function post($data, $headers = null, $files = array());
 
 	public function head($headers = null);
 
@@ -144,9 +145,9 @@ abstract class HTTPProxy implements IHTTPProxy
 		return $this->headers->parseDocument($result);
 	}
 
-	public function postData($data, $headers = null)
+	public function postData($data, $headers = null, $files = array())
 	{
-		$result = $this->post($data, $headers);
+		$result = $this->post($data, $headers, $files);
 		if ($result === false) {
 			return false;
 		}
