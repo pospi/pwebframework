@@ -320,7 +320,11 @@ abstract class Request
 	public static function getFullURI($withQuery = true)
 	{
 		$start = empty($_SERVER['HTTPS']) ? 'http://' : 'https://';
-		return $start . $_SERVER['HTTP_HOST'] . ($_SERVER['SERVER_PORT'] == 80 ? '' : ':' . $_SERVER['SERVER_PORT']) . ($withQuery ? $_SERVER['REQUEST_URI'] : substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?')));
+
+		// some agents may send the port number as part of the hostname
+		$host = preg_replace('/\:\d+$/', '', $_SERVER['HTTP_HOST']);
+
+		return $start . $host . ($_SERVER['SERVER_PORT'] == 80 ? '' : ':' . $_SERVER['SERVER_PORT']) . ($withQuery ? $_SERVER['REQUEST_URI'] : substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?')));
 	}
 
 	//==================================================================================================================
