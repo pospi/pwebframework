@@ -51,6 +51,12 @@ class QuickTemplate
 		$this->dirty = true;
 	}
 
+	public function replaceVars($vars)
+	{
+		$this->vars = array_merge($this->vars, $vars);
+		$this->dirty = true;
+	}
+
 	public function clearVars()
 	{
 		$this->vars = array();
@@ -77,7 +83,7 @@ class QuickTemplate
 	public function getOutput()
 	{
 		if ($this->dirty) {
-			$this->replaceVars();
+			$this->replaceTemplateVars();
 			$this->dirty = false;
 		}
 
@@ -89,12 +95,12 @@ class QuickTemplate
 	// methods
 	public function regenerate()
 	{
-		$this->replaceVars();
+		$this->replaceTemplateVars();
 	}
 
 	//==========================================================================
-	
-	private function replaceVars()
+
+	private function replaceTemplateVars()
 	{
 		extract($this->vars);          // extract our vars to local namespace
 
