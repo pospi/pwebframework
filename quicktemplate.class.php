@@ -5,7 +5,7 @@
 	This class allows for very quick templating, using PHP directly as the
 	templating engine.
 
-	You should also take a look at 
+	You should also take a look at
 	http://php.net/manual/en/control-structures.alternative-syntax.php
 
 	Caution: this class makes use of output buffering.
@@ -96,6 +96,18 @@ class QuickTemplate
 	public function regenerate()
 	{
 		$this->replaceTemplateVars();
+	}
+
+	/**
+	 * Allows programmatic including of template files from within other templates.
+	 * Just specify the template file to load and any variables to import into it.
+	 */
+	public static function inc($file, $variables)
+	{
+		$t = new QuickTemplate($file);
+		$t->setVars($variables);
+
+		echo $t->getOutput();
 	}
 
 	//==========================================================================
