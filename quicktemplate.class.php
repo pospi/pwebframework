@@ -57,6 +57,12 @@ class QuickTemplate
 		$this->dirty = true;
 	}
 
+	public function mergeVars($vars)
+	{
+		$this->vars = array_merge_recursive($this->vars, $vars);
+		$this->dirty = true;
+	}
+
 	public function clearVars()
 	{
 		$this->vars = array();
