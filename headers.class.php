@@ -376,6 +376,12 @@ class Headers implements ArrayAccess, Iterator, Countable
 			if (!is_array($v)) {
 				$v = array($v);
 			}
+
+			// get correct casing of header fields
+			$k = explode('-', $k);
+			$k = array_map('ucfirst', $k);
+			$k = implode('-', $k);
+
 			foreach ($v as $val) {
 				header(ucwords($k) . ": " . $val, false);
 			}
