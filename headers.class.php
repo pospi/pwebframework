@@ -256,14 +256,19 @@ class Headers implements ArrayAccess, Iterator, Countable
 
 				if ($count > 0) {
 					// response header
-					$requestLine = intval($statusCode);
+					$this->add(0, intval($statusCode));
 				} else {
-					// request header
-					$requestLine = preg_replace('/\s+http\/(\d\.\d)/i', '', $parts[0]) . ' HTTP/1.1';
+					$code = preg_replace('/\s+http\/(\d\.\d)/i', '', $parts[0]);
+					if (is_numeric($code)) {
+						// request header
+						$this->add(0, $code . ' HTTP/1.1');
+					} else {
+						// malformed header with no value
+						$this->add(strtolower(trim($parts[0])), $parts[1]);
+					}
 				}
-
-				$this->add(0, $requestLine);
 			} else {
+				// properly formed, normal header
 				$idx = strtolower(trim($parts[0]));
 				$val = ltrim($parts[1]);
 
