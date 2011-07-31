@@ -430,7 +430,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 	// return the full HTTP header string for a status code
 	public static function getStatusLine($code)
 	{
-		return 'HTTP/1.1 ' . $code . ' ' . Headers::$STATUS_CODES[$code];
+		return (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1') . ' ' . $code . ' ' . Headers::$STATUS_CODES[$code];
 	}
 
 	public static function isOk($code)
