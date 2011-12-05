@@ -362,7 +362,7 @@ abstract class Request
 			if ($matchAll && !preg_match_all($expect, $var, $matches)) {
 				return $default;
 			}
-			if (!$matchAll && preg_match($expect, $var, $matches)) {
+			if (!$matchAll && !preg_match($expect, $var, $matches)) {
 				return $default;
 			}
 			return $matches;
