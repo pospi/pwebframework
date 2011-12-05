@@ -89,6 +89,63 @@ abstract class Request
 		return Request::sanitise($_COOKIE, $key, $expect, $allowable, null, true);
 	}
 
+	/**
+	 * Read from any request variable, in the given order.
+	 * This is similar to reading from $_REQUEST intead of $_GET, $_POST etc
+	 * @param  [string]	$key		request variable to look for
+	 * @param  [const]	$expect		(optional) valid datatype of the request data to read
+	 *                              @see the constants declared at the head of this file
+	 * @param  [mixed]	$default	default value for the variable if not present
+	 * @param  [array]	$allowable	(optional) allowable values to validate the input against
+	 * @param  [string]	$order 		(optional) order in which to search request variables. Defaults
+	 *                              to 'gpc', which is the same as usually defined in php.ini's
+	 *                              variables_order directive, excluding searching in $_SESSION.
+	 * @param  [bool]   $required	(optional, default false) whether or not the variable must be present
+	 * @return [mixed]
+	 */
+	public static function read($key, $expect = EXPECT_RAW, $default = null, $allowable = null, $order = 'gpc', $required = false)
+	{
+		while (isset($order{0}) && $c = $order{0}) {
+			$order = substr($order, 1);
+			switch ($c) {
+				case 'g':
+					$method = 'get';
+					break;
+				case 'p':
+					$method = 'post';
+					break;
+				case 'c':
+					$method = 'cookie';
+					break;
+			}
+			if ($method) {
+				$result = call_user_func(array('Request', $method), $key, $expect, $allowable, null);
+				if ($result !== null) {
+					return $result;
+				}
+			}
+		}
+
+		if ($required) {
+			$dummy = null;
+			Request::sanitisationError($dummy, "Required request variable '$key' not found in %SOURCE%");
+		}
+		return $default;
+	}
+
+	/**
+	 * Simplified form of read() where the variable is required to be present
+	 * @param  [string]	$key       request variable to look for
+	 * @param  [const]	$expect    (optional) valid datatype of the request data to read
+	 *                              @see the constants declared at the head of this file
+	 * @param  [array]	$allowable (optional) allowable values to validate the input against
+	 * @return [mixed]
+	 */
+	public static function need($key, $expect = EXPECT_RAW, $allowable = null)
+	{
+		return Request::read($key, $expect, null, $allowable, 'gpc', true);
+	}
+
 	//==================================================================================================================
 	//		QueryString handling
 
