@@ -60,6 +60,12 @@ interface IHTTPProxy
 	// retrieve any error messages
 	public function getError();
 
+	// did the last request connect successfully?
+	public function wasConnectionOk();
+
+	// did the last request complete successfully, or generate an HTTP error?
+	public function wasResponseOk();
+
 	// sets whether or not to follow HTTP redirects
 	public function followRedirects($follow = true);
 
@@ -129,6 +135,18 @@ abstract class HTTPProxy implements IHTTPProxy
 	public function reset()
 	{
 		$this->headers = null;
+	}
+
+	// detect connection errors. Usually, the absence of any response headers means we couldn't connect
+	public function wasConnectionOk()
+	{
+		return isset($this->headers);
+	}
+
+	// detect HTTP error codes via the response headers object
+	public function wasResponseOk()
+	{
+		return $this->headers->ok();
 	}
 
 	//==========================================================================
