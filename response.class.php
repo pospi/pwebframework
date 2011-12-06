@@ -3,7 +3,7 @@
 	pWebFramework - response handler class
 	----------------------------------------------------------------------------
 	An abstracted response class for handling nonspecific output functionality.
-	
+
 	Provides:
 		- Header storage & manipulation
 			Nothing	is affected until the response is actually sent, leaving
@@ -15,7 +15,7 @@
 			string-convertible objects, with specific data formatting for request
 			mode types handled internally. Additionally, output blocks may be
 			nested in subarrays and manipulated as related sets.
-	
+
 	All block-related functions accept index paramters of any of the forms:
 		array key (int or string)	- array index in output blocks. first-level depth only.
 		array(k1, k2, k3, ...kN)	- array of indices into child block arrays
@@ -33,7 +33,7 @@ class Response
 	const RESP_HTML		= 0;
 	const RESP_JSON		= 1;
 	const RESP_PLAINTEXT= 2;
-	
+
 	private	$headers = null;
 	private $outputBlocks = array();
 
@@ -41,10 +41,10 @@ class Response
 	{
 		$this->headers = new Headers();
 	}
-	
+
 	//==========================================================================
 	//		Output handling
-	
+
 	/**
 	 * Add some generic output block to the response.
 	 *
@@ -74,13 +74,13 @@ class Response
 		}
 		return true;
 	}
-	
+
 	// same as above, only it inserts after the target
 	public function addBlockAfter($block, $name, $after)
 	{
 		return $this->injectBlock($block, $after, $name, false);
 	}
-	
+
 	/**
 	 * Sets an output block by index.
 	 * This function will not recurse down & automatically create nonexistent block levels,
@@ -101,12 +101,12 @@ class Response
 		}
 		return false;
 	}
-	
+
 	public function setAllBlocks($array)
 	{
 		$this->outputBlocks = $array;
 	}
-	
+
 	// Send this entire response, then exit the script
 	public function send()
 	{
@@ -114,7 +114,7 @@ class Response
 		echo $this->getOutput();
 		exit;
 	}
-	
+
 	/**
 	 * Compute and retrieve our output by decoding output blocks.
 	 *
@@ -123,11 +123,11 @@ class Response
 	public function getOutput($blocks = null)
 	{
 		$output = "";
-		
+
 		if ($blocks === null) {
 			$blocks = $this->outputBlocks;
 		}
-		
+
 		foreach ($blocks as $block) {
 			if (is_object($block) && method_exists($block, '__toString')) {
 				$output .= $block->__toString();
@@ -138,14 +138,14 @@ class Response
 			}
 			$output .= "\n";
 		}
-		
+
 		return $output;
 	}
-	
+
 	private function injectBlock($block, $nearIdx, $name = null, $before = false)
 	{
 		$parentAndIdx = &$this->getBlockParentAndIndex($nearIdx, true);
-		
+
 		$keys = array_keys($parentAndIdx[0]);
 		$values = array_values($parentAndIdx[0]);
 
@@ -153,19 +153,19 @@ class Response
 		if ($start === false) {
 			return false;
 		}
-		
+
 		if (!$before) {
 			$start += 1;
 		}
-		
+
 		array_splice($keys, $start, 0, $name);
 		array_splice($values, $start, 0, $block);
-	
+
 		$parentAndIdx[0] = array_combine($keys, $values);
-	
+
 		return true;
 	}
-	
+
 	/**
 	 * Given an index into some subelement of the output blocks, returns an array of
 	 * a reference to the parent container array element and final index into that array.
@@ -196,23 +196,23 @@ class Response
 				return false;		// index was not set
 			}
 		}
-		
+
 		return false;	// not found or no index passed
 	}
-	
+
 	//==========================================================================
 	//		HTTP header handling
-	
+
 	public function getHeaders()
 	{
 		return $this->headers;
 	}
-	
+
 	public function setHeaders($headers)
 	{
 		$this->headers = $headers;
 	}
-	
+
 	// set an HTTP header directly
 	public function setHeader($key, $val)
 	{
@@ -222,12 +222,12 @@ class Response
 	{
 		$this->headers->add($key, $val);
 	}
-	
+
 	public function getHeader($key)
 	{
 		return $this->headers[$key];
 	}
-	
+
 	public function sendHeaders($headers = null)
 	{
 		if (!isset($headers)) {
@@ -241,20 +241,21 @@ class Response
 	{
 		$file = $line = '';
 		if (headers_sent($file, $line)) {
-			trigger_error("Attempted to set headers, but already set by $file:$line");
+			$msg = "Attempted to set headers, but already set by $file:$line";
+			trigger_error($msg, E_USER_WARNING);
 		}
 	}
-	
+
 	//==========================================================================
 	//	Header helpers
-	
+
 	// IMMEDIATELY redirects the remote agent to this URL, and aborts the current script
 	public function redirect($uri)
 	{
 		$this->setHeader('Location', $uri);
 		$this->send();
 	}
-	
+
 	// sets a redirect but does not forward the browser straight away
 	public function setRedirect($uri)
 	{

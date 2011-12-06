@@ -38,7 +38,11 @@ class Session implements ArrayAccess
 	public function offsetSet($offset, $value)
 	{
 		if (is_null($offset)) {
-			trigger_error('Attempted to set session variable without passing a key', E_USER_ERROR);
+			$msg = 'Attempted to set session variable without passing a key';
+			if (class_exists(pwebframework::$exceptionClass)) {
+				throw new pwebframework::$exceptionClass($msg);
+			}
+			trigger_error($msg, E_USER_ERROR);
 		} else {
 			$_SESSION[$offset] = $value;
 		}

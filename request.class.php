@@ -483,7 +483,11 @@ abstract class Request
 	private static function sanitisationError(&$from, $msg, $critical = true)
 	{
 		$place = (($from === $_GET || isset($_SERVER['argv']) && $from === $_SERVER['argv']) ? 'GET' : ($from === $_POST ? 'POST' : ($from === $_COOKIE ? 'COOKIE' : 'REFERENCED')));
-		trigger_error(str_replace('%SOURCE%', $place, $msg), ($critical ? E_USER_ERROR : E_USER_WARNING));
+		$msg = str_replace('%SOURCE%', $place, $msg);
+		if ($critical && class_exists(pwebframework::$exceptionClass)) {
+			throw new pwebframework::$exceptionClass($msg);
+		}
+		trigger_error($msg, ($critical ? E_USER_ERROR : E_USER_WARNING));
 	}
 
 	// :NOTE: we count arrays full of empty strings or NULL values as empty
