@@ -22,7 +22,8 @@ define('EXPECT_FLOAT',	3);		// interpret as float or integer
 define('EXPECT_ID',		4);		// expect a database ID (an integer > 0)
 define('EXPECT_BOOL',	5);		// interpret as boolean: false="no"|"false"|0, true="yes"|"true"|1..&infin;
 define('EXPECT_ARRAY',	6);		// pull in an array directly
-define('EXPECT_JSON',	7);		// expects a JSON *object* (primitives will fail), and parses given string into its full representation
+define('EXPECT_JSON',	7);		// expects any JSON, and parses given string into its full representation
+define('EXPECT_JSON_OBJECT',	8);		// expects a JSON *object* (primitives will fail), and parses given string into its full representation
 
 abstract class Request
 {
@@ -451,6 +452,7 @@ abstract class Request
 					$var = is_array($var) && !Request::arrayEmpty($var) ? $var : null;
 					break;
 				case EXPECT_JSON:
+				case EXPECT_JSON_OBJECT:
 					if (is_string($var)) {
 						$o = json_decode($var);
 						if ($o === null) {
@@ -465,7 +467,11 @@ abstract class Request
 									Request::sanitisationError($from, "JSON syntax error in %SOURCE% variable '$key'", $required);
 							}
 						}
-						$var = is_object($o) ? $o : null;
+						if ($expect == EXPECT_JSON_OBJECT && !is_object($o)) {
+							$var = null;
+						} else {
+							$var = $o;
+						}
 					} else {
 						$var = null;
 					}
