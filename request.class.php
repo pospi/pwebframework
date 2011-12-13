@@ -24,6 +24,7 @@ define('EXPECT_BOOL',	5);		// interpret as boolean: false="no"|"false"|0, true="
 define('EXPECT_ARRAY',	6);		// pull in an array directly
 define('EXPECT_JSON',	7);		// expects any JSON, and parses given string into its full representation
 define('EXPECT_JSON_OBJECT',	8);		// expects a JSON *object* (primitives will fail), and parses given string into its full representation
+define('EXPECT_JSON_AS_ARRAY',	9);		// same as EXPECT_JSON, except that the data is returned as an array instead of an stdClass object
 
 abstract class Request
 {
@@ -458,8 +459,9 @@ abstract class Request
 					break;
 				case EXPECT_JSON:
 				case EXPECT_JSON_OBJECT:
+				case EXPECT_JSON_AS_ARRAY:
 					if (is_string($var)) {
-						$o = json_decode($var);
+						$o = json_decode($var, $expect == EXPECT_JSON_AS_ARRAY);
 						if ($o === null) {
 							switch (json_last_error()) {
 								case JSON_ERROR_DEPTH:
