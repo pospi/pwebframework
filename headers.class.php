@@ -78,8 +78,10 @@ class Headers implements ArrayAccess, Iterator, Countable
 	 */
 	public function __construct($headers = null)
 	{
-		if ($headers) {
+		if (is_string($headers) || (is_array($headers) && array_keys($headers) === range(0, count($headers) - 1))) {
 			$this->parse($headers);
+		} else {
+			$this->setFields($headers);
 		}
 	}
 
@@ -183,6 +185,23 @@ class Headers implements ArrayAccess, Iterator, Countable
 			$this->previousHeader->erase($k);
 		}
 
+		return true;
+	}
+
+	/**
+	 * Set all header fields using an associative array
+	 * @param array $arr mapping of header names to values
+	 */
+	public function setFields($arr)
+	{
+		if (!is_array($arr)) {
+			return false;
+		}
+		$validArr = array();
+		foreach ($arr as $k => $v) {
+			$validArr[strtolower($k)] = $v;
+		}
+		$this->fields = $validArr;
 		return true;
 	}
 
