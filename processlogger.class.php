@@ -149,7 +149,7 @@
 		
 		private function toString() {
 			if ($this->logFile) {
-				return file_get_contents($this->logFileName);
+				return file_get_contents($this->logFileName, true);
 			}
 			return implode($this->lines, "\n") . "\n";
 		}
