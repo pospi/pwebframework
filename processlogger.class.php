@@ -54,12 +54,22 @@ class ProcessLogger implements ArrayAccess {
 	private $useErrorHandler = false;
 	private $ignoreErrorPaths = array();
 	private $errorCount = 0;		// we can count errors to put a consistent variable at the end of logs to check on
+	private $byteCount = 0;			// track number of bytes written in order to send correct log instead of whole appended file
 
 	private $immediateOutput;
+
+	private static $has_mbstring;	// mbstring extension installed (used in byte counting)
+	private static $has_mb_shadow;	// @see http://php.net/manual/en/mbstring.overload.php
 
 	// @param	$immediateOutput	if true, logs should be printed to the screen as they happen
 	public function __construct($immediateOutput = true) {
 		$this->immediateOutput = $immediateOutput;
+
+		// init vars used for byte length determination on first use
+		if (!isset(self::$has_mbstring)) {
+			self::$has_mbstring = extension_loaded('mbstring');
+			self::$has_mb_shadow = (int) ini_get('mbstring.func_overload');
+		}
 	}
 
 	public function __destruct() {
@@ -83,14 +93,16 @@ class ProcessLogger implements ArrayAccess {
 
 	public function outputToFile($file) {
 		$this->logFileName = $file;
-		$this->logFile = fopen($file, 'w');
+		$this->logFile = fopen($file, 'a+');
 		if (!$this->logFile) {
 			$this[] = "ERROR: Could not open log file $file";
 		}
 
 		// put any already set log lines into the file and clear out our memory cache
 		if (sizeof($this->lines) > 0) {
-			fwrite($this->logFile, implode("\n", $this->lines) . "\n");
+			$content = implode("\n", $this->lines) . "\n";
+			fwrite($this->logFile, $content);
+			$this->byteCount = self::bytelen($content);
 			$this->lines = array();
 		}
 	}
@@ -160,9 +172,10 @@ class ProcessLogger implements ArrayAccess {
 
 	//======================================================================
 
-	private function toString() {
+	public function toString() {
 		if ($this->logFile) {
-			return file_get_contents($this->logFileName, true);
+			fseek($this->logFile, $this->byteCount * -1, SEEK_END);
+			return fread($this->logFile, $this->byteCount);
 		}
 		return implode($this->lines, "\n") . "\n";
 	}
@@ -322,6 +335,23 @@ class ProcessLogger implements ArrayAccess {
 		}
 	}
 
+	/**
+	 * Works around an issue where the multibyte string extension
+	 * can be configured to shadow strlen(), and so strlen no longer
+	 * returns simple byte length (which it historically does, but
+	 * arguably shouldn't).
+	 * @param  string $str string to get byte length of
+	 * @return int
+	 */
+	private static function bytelen($str)
+	{
+		if (self::$has_mbstring && (self::$has_mb_shadow & 2)) {
+			return mb_strlen($str, 'latin1');
+		} else {
+			return strlen($str);
+		}
+	}
+
 	//======================================================================
 	//		ArrayAccess implementation
 
@@ -335,6 +365,7 @@ class ProcessLogger implements ArrayAccess {
 
 		if ($this->logFile) {
 			fwrite($this->logFile, $line . "\n");
+			$this->byteCount += self::bytelen($line . "\n");
 		} else {
 			$this->lines[] = $line;
 		}
