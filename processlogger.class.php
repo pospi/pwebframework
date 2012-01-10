@@ -383,6 +383,13 @@ class ProcessLogger implements ArrayAccess {
 		}
 	}
 
+	// Append a log line prefixed with the current timestamp
+	public function t($line) {
+		$usec = explode(' ', microtime());
+		$usec = substr($usec[0], 2, 6);
+		$this[date('Ymd H:i:s.') . $usec] = $line;
+	}
+
 	// :NOTE: the following 3 functions are pretty pointless for this implementation so they don't check for file output mode
 	public function offsetExists($offset) {
 		return isset($this->lines[$offset]);
