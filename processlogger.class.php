@@ -56,6 +56,8 @@ class ProcessLogger implements ArrayAccess {
 	private $errorCount = 0;		// we can count errors to put a consistent variable at the end of logs to check on
 	private $byteCount = 0;			// track number of bytes written in order to send correct log instead of whole appended file
 
+	private $skipCleanExitStats = false;
+
 	private $immediateOutput;
 
 	private static $has_mbstring;	// mbstring extension installed (used in byte counting)
@@ -132,6 +134,10 @@ class ProcessLogger implements ArrayAccess {
 		register_shutdown_function(array($this, '__shutdown'));
 	}
 
+	public function skipCleanExitStats() {
+		$this->skipCleanExitStats = true;
+	}
+
 	// Any errors detected in files that fall within paths set here will
 	// not be logged. This is so you can have deprecated/non-strict code
 	// in libraries and still use it without creating log spam.
@@ -195,25 +201,27 @@ class ProcessLogger implements ArrayAccess {
 			}
 		}
 
-		$this[] = "\n-- PROCESS COMPLETE --\n";
-		$this[] = 'Peak memory usage: ' . number_format(memory_get_peak_usage(), 0, '.', ',') . " bytes";
-		$this[] = 'End memory usage:  ' . number_format(memory_get_usage(), 0, '.', ',') . " bytes";
+		if (!$this->skipCleanExitStats || $this->errorCount) {
+			$this[] = "\n-- PROCESS COMPLETE --\n";
+			$this[] = 'Peak memory usage: ' . number_format(memory_get_peak_usage(), 0, '.', ',') . " bytes";
+			$this[] = 'End memory usage:  ' . number_format(memory_get_usage(), 0, '.', ',') . " bytes";
 
-		if ($this->scriptStart) {
-			$time = microtime(true) - $this->scriptStart;
+			if ($this->scriptStart) {
+				$time = microtime(true) - $this->scriptStart;
 
-			$this[] = 'Execution time:    ' . number_format($time, 6) . ' seconds';
+				$this[] = 'Execution time:    ' . number_format($time, 6) . ' seconds';
+			}
+
+			if ($this->useErrorHandler && $this->errorCount) {
+				$this[] = "Errors detected:   " . $this->errorCount;
+			}
+
+			if ($this->logFile) {
+				$this[] = "Process log at:    $this->logFileName";
+			}
+
+			$this[] = "";	// blank line, to separate logger internal errors which may come from sendAll()
 		}
-
-		if ($this->useErrorHandler) {
-			$this[] = "Errors detected:   " . $this->errorCount;
-		}
-
-		if ($this->logFile) {
-			$this[] = "Process log at:    $this->logFileName";
-		}
-
-		$this[] = "";	// blank line, to separate logger internal errors which may come from sendAll()
 
 		$this->sendAll();
 	}
