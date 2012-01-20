@@ -419,6 +419,16 @@ class Headers implements ArrayAccess, Iterator, Countable
 		return isset($this->fields[0]) ? $this->fields[0] : 0;
 	}
 
+	public function addJSONHeader()
+	{
+		$this->fields['content-type'] = 'application/json';
+	}
+
+	public function addXMLHeader()
+	{
+		$this->fields['content-type'] = 'application/xml';
+	}
+
 	public function ok()
 	{
 		return isset($this->fields[0]) && Headers::isOk($this->fields[0]);

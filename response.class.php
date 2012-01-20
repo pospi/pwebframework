@@ -261,6 +261,16 @@ class Response
 	{
 		$this->setHeader('Location', $uri);
 	}
+
+	public function addJSONHeader()
+	{
+		$this->headers->addJSONHeader();
+	}
+
+	public function addXMLHeader()
+	{
+		$this->headers->addXMLHeader();
+	}
 }
 
 ?>
