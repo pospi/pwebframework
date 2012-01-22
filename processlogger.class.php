@@ -56,6 +56,9 @@ class ProcessLogger implements ArrayAccess {
 	private $errorCount = 0;		// we can count errors to put a consistent variable at the end of logs to check on
 	private $byteCount = 0;			// track number of bytes written in order to send correct log instead of whole appended file
 
+	private $indent = 0;
+	public $indentStr = "\t";
+
 	private $skipCleanExitStats = false;
 
 	private $immediateOutput;
@@ -143,6 +146,19 @@ class ProcessLogger implements ArrayAccess {
 	// in libraries and still use it without creating log spam.
 	public function ignoreErrorsFrom($path) {
 		$this->ignoreErrorPaths[] = $path;
+	}
+
+	//======================================================================
+	//		Indentation
+
+	public function indent()
+	{
+		++$this->indent;
+	}
+
+	public function unindent()
+	{
+		$this->indent = max(0, --$this->indent);
 	}
 
 	//======================================================================
@@ -369,7 +385,9 @@ class ProcessLogger implements ArrayAccess {
 	 *		error: OMG NOES
 	 */
     public function offsetSet($offset, $value) {
-		$line = ($offset ? $offset . ': ' : '') . $value;
+		$line = ($this->indent ? str_repeat($this->indentStr, $this->indent) : '')
+			  . ($offset ? $offset . ': ' : '')
+			  . $value;
 
 		if ($this->logFile) {
 			fwrite($this->logFile, $line . "\n");
