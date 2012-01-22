@@ -297,6 +297,41 @@ abstract class Request
 		return $query ? $page . '?' . Request::getQueryString($params) : $page;
 	}
 
+	/**
+	 * Resolve two URIs against one another. The resulting URL will be the same as
+	 * a browser navigating from $sourceUri to $destUri.
+	 *
+	 * @param  string $sourceUri source URI to resolve against. This must be an absolute URI.
+	 * @param  string $destUri   destination URI to navigate to
+	 * @return the absolute URI determined by resolving $destUrl against $sourceUrl
+	 */
+	public static function resolveURIs($sourceUri, $destUri)
+	{
+		$url = parse_url($destUri);
+		if (isset($url['scheme'])) {
+			return $destUri;	// already absolute
+		}
+
+		$srcUrl = parse_url($sourceUri);
+
+		$str = "{$srcUrl['scheme']}://";
+		if (isset($srcUrl['user']) || isset($srcUrl['pass'])) {
+			$str .= "{$srcUrl['user']}:{$srcUrl['pass']}@";
+		}
+		$str .= $srcUrl['host'];
+
+		if (isset($srcUrl['port'])) {
+			$str .= ":{$srcUrl['port']}";
+		}
+
+		if (strpos($destUri, '/') === 0) {
+			return $str . $destUri;	// server-relative
+		}
+
+		// file-relative
+		return realpath($sourceUri . $destUri);
+	}
+
 	private static function storeQueryParams()
 	{
 		if (Request::$QUERY_PARAMS === null) {
