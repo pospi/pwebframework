@@ -385,8 +385,8 @@ class ProcessLogger implements ArrayAccess {
 	 *		error: OMG NOES
 	 */
     public function offsetSet($offset, $value) {
-		$line = ($this->indent ? str_repeat($this->indentStr, $this->indent) : '')
-			  . ($offset ? $offset . ': ' : '')
+		$line = ($offset ? $offset . ': ' : '')
+			  . ($this->indent ? str_repeat($this->indentStr, $this->indent) : '')
 			  . $value;
 
 		if ($this->logFile) {
