@@ -37,8 +37,13 @@
  *
  *  $log[] = "Log line.";
  *
- * Copyright (c) 2010 Sam Pospischil <sam.pospischil@deta.qld.gov.au>
- *                    Web Services, Dept. of Education and Training
+ * If you have custom exception types containing additional metadata etc which
+ * are likely to go uncaught, you can also use setExceptionHandler() to provide
+ * your own way of dealing with the exception's output. You must return a 4 element
+ * array from this callback containing the message, file path, line number and stack
+ * trace array (@see debug_backtrace()) to output in the log.
+ *
+ * @author  Sam Pospischil <pospi@spadgos.com>
  */
 
 class ProcessLogger implements ArrayAccess {
