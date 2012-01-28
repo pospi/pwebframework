@@ -4,7 +4,7 @@ pWebFramework
 
 About
 -----
-*pWebFramework* is a small group of classes for handling common, basic web application tasks. This general-purpose platform provides a compact and robust baseline to start implementing projects of your own.
+*pWebFramework* is a small group of classes for handling common low-level web application tasks. This general-purpose platform provides a compact and robust baseline to start implementing projects of your own.
 
 
 Features
@@ -25,6 +25,8 @@ Features
 	- Abstract HTTP request interface and various implementations
 - Templating
 	- Extremely fast and simple PHP-based templating class
+- Log handling
+	- Logging class suitable for use in critical backend scripts. Features lightweight syntax, builtin error trapping, error emailing and can output logs to file, email or stdout.
 
 
 Todo
