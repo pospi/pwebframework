@@ -52,6 +52,7 @@ class ProcessLogger implements ArrayAccess {
 	private $emailRecipients = array();		// array of [address, subject, fromAddress, fromEnvelope, bOnlyErrors]
 
 	private $useErrorHandler = false;
+	private $exceptionHandler = null;
 	private $ignoreErrorPaths = array();
 	private $errorCount = 0;		// we can count errors to put a consistent variable at the end of logs to check on
 	private $byteCount = 0;			// track number of bytes written in order to send correct log instead of whole appended file
@@ -194,6 +195,18 @@ class ProcessLogger implements ArrayAccess {
 
 	//======================================================================
 
+	/**
+	 * Assign a callback to handle any thrown exceptions prior to output.
+	 * The callback should return an ordered array of the error message,
+	 * errored file, line number and stack trace. Note that this only applies
+	 * to uncaught exceptions, which is why it acts solely as custom exception
+	 * output glue.
+	 * @param function $fn callback to filter the exception by
+	 */
+	public function setExceptionHandler($fn) {
+		$this->exceptionHandler = $fn;
+	}
+
 	public function toString() {
 		if ($this->logFile) {
 			fseek($this->logFile, $this->byteCount * -1, SEEK_END);
@@ -264,7 +277,12 @@ class ProcessLogger implements ArrayAccess {
 			if (strpos($e->getFile(), $path) === 0) return false;
 		}
 
-		$fatal = $this->logError(-1, $e->getMessage(), $e->getFile(), $e->getLine(), $e->getTrace());
+		if ($this->exceptionHandler) {
+			list($message, $file, $line, $trace) = call_user_func($this->exceptionHandler, $e);
+			$fatal = $this->logError(-1, $message, $file, $line, $trace);
+		} else {
+			$fatal = $this->logError(-1, $e->getMessage(), $e->getFile(), $e->getLine(), $e->getTrace());
+		}
 
 		return $fatal ? false : $this->immediateOutput;
 	}
