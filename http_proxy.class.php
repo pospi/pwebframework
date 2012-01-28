@@ -23,6 +23,7 @@
   ===============================================================================*/
 
 require_once('headers.class.php');
+require_once('request.class.php');
 
 interface IHTTPProxy
 {

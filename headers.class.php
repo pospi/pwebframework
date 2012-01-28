@@ -380,7 +380,6 @@ class Headers implements ArrayAccess, Iterator, Countable
 	 */
 	public function send($headerBlock = null)
 	{
-		Response::checkHeaders();	// die if output started
 		if (!isset($headerBlock)) {
 			// sending ourselves.
 			$headerBlock = $this->fields;

@@ -230,6 +230,7 @@ class Response
 
 	public function sendHeaders($headers = null)
 	{
+		Response::checkHeaders();	// die if output started
 		if (!isset($headers)) {
 			$headers = $this->headers;
 		}
