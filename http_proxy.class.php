@@ -209,4 +209,3 @@ abstract class HTTPProxy implements IHTTPProxy
 		return $this->headers->parseDocument($result);
 	}
 }
-?>

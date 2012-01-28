@@ -471,4 +471,3 @@ class Headers implements ArrayAccess, Iterator, Countable
 		return $code >= 300 && $code < 400 && $code != 305;
 	}
 }
-?>

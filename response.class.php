@@ -273,5 +273,3 @@ class Response
 		$this->headers->addXMLHeader();
 	}
 }
-
-?>

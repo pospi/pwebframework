@@ -549,5 +549,3 @@ abstract class Request
 		return true;
 	}
 }
-
-?>

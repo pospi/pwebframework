@@ -11,4 +11,3 @@ class pwebframework
 	// This has no effect on warnings, which are raised as usual.
 	public static $exceptionClass = null;
 }
-?>

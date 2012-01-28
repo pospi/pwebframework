@@ -133,4 +133,3 @@ class QuickTemplate
         return $this->finalString;
 	}
 }
-?>

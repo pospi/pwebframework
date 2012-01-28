@@ -39,7 +39,7 @@ class ProxySocket extends HTTPProxy
 	}
 
 	public function put($data, $headers = null)
-	{	
+	{
 		// :TODO:
 	}
 
@@ -143,4 +143,3 @@ class ProxySocket extends HTTPProxy
 		return array($bits['host'], (isset($bits['port']) ? $bits['port'] : 80), (isset($bits['path']) ? $bits['path'] : '/'));
 	}
 }
-?>

@@ -167,4 +167,3 @@ class ProxyCURL extends HTTPProxy
 		curl_setopt($this->curl, CURLOPT_HTTPHEADER, $headers);
 	}
 }
-?>
