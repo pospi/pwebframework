@@ -48,7 +48,6 @@ class WebWalker
 	 *				// whatever.
 	 *			},
 	 *		)
-	 * @param  array $urlVars variables from interrogating the previous page's DOM
 	 */
 	public function walk($dataMap)
 	{
