@@ -26,5 +26,9 @@
 
 	require_once('quicktemplate.class.php');
 
+	// logging & backend use
 	require_once('processlogger.class.php');
+
+	// css & callback based web crawler class
+	require_once('web_walker.class.php');
 ?>

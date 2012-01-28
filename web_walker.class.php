@@ -10,10 +10,14 @@
  * :TODO: threading
  *
  * @depends PHP 5.3
- * @depends pWebFramework
- * @depends CSS Selector
+ * @depends CSS Selector (c) Copyright TJ Holowaychuk <tj@vision-media.ca> MIT Licensed
  * @author  Sam Pospischil <pospi@spadgos.com>
  */
+
+require_once('processlogger.class.php');
+require_once('http_proxy.class.php');
+require_once('lib/cssselector.php');
+
 class WebWalker
 {
 	public static $ExceptionClass = null;	// set this to have the class throw exceptions instead of errors
@@ -33,27 +37,16 @@ class WebWalker
 	 * Walk a map of pages based on data within the DOM
 	 * @param  array $dataMap map of data to crawl. This array takes the following format:
 	 *      'url'		: url to load.
-	 *		'targets'	: mapping of CSS selectors matching elements in the dom to arrays containing
-	 *					  attributes or properties to run regexes against. These properties can then be
-	 *					  referenced in the 'next' block.
-	 *					  To specify attributes, prefix the property with an @ symbol. You can also use
-	 *					  the keys 'name' for node name and 'text' for innerText string.
-	 *					  This array may also contain the property 'required', which can be set explicitly
-	 *					  false when this DOM element does not need to be found to complete the request.
-	 *		'next'		: an array (or array of arrays to branch requests) formatted the same as the top
-	 *					  level array (with url, targets and optional 'next' block of their own).
-	 *					  Urls in subsequent arrays may substitute in values from the previous targets.
-	 *					  The format for this is {[TARGET_IDX]#[ATTRIB_NAME]#[REGEX_SUBSTITUTION_STR]}
+	 *		'targets'	: mapping of CSS selectors matching elements in the dom to callbacks to
+	 *					  run against each matched element in the set.
 	 *	For example:
 	 *		'url' => '...',
 	 *		'targets' => array(
-	 *			'some css expression' => array(
-	 *				'[href]' => '@(\w|-|/)*(\d+)\?@U',	// pull some stuff out of an element's href attribute
-	 *			),
-	 *		),
-	 *		'next' => array(
-	 *			'url' => '{0#[href]#$2$1}'				// swap it around in the output
-	 *			'targets' => ...
+	 *			'some css expression' => function($walker, $node) {
+	 *				// you can interrogate each matched node in turn within these calbacks,
+	 *				// fire further requests, perform actions, store variables for child requests,
+	 *				// whatever.
+	 *			},
 	 *		)
 	 * @param  array $urlVars variables from interrogating the previous page's DOM
 	 */

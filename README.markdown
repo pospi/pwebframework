@@ -27,6 +27,8 @@ Features
 	- Extremely fast and simple PHP-based templating class
 - Log handling
 	- Logging class suitable for use in critical backend scripts. Features lightweight syntax, builtin error trapping, error emailing and can output logs to file, email or stdout.
+- Web Crawling
+	- Crawler engine based on CSS and callbacks allows simple, flexibe and efficient reading of data from remote HTML & XML documents.
 
 
 Todo
