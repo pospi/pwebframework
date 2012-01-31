@@ -20,8 +20,6 @@ require_once('lib/cssselector.php');
 
 class WebWalker
 {
-	public static $ExceptionClass = null;	// set this to have the class throw exceptions instead of errors
-
 	private $log;
 	private $currentPage;
 	public $currentURL;
@@ -163,8 +161,8 @@ class WebWalker
 
 	public function error($msg)
 	{
-		if (self::$ExceptionClass) {
-			throw new self::$ExceptionClass($msg);
+		if (pwebframework::$crawlerExceptionClass) {
+			throw new pwebframework::$crawlerExceptionClass($msg);
 		}
 		trigger_error($msg, E_USER_ERROR);
 	}

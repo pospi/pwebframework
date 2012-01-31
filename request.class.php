@@ -532,8 +532,8 @@ abstract class Request
 	{
 		$place = (($from === $_GET || isset($_SERVER['argv']) && $from === $_SERVER['argv']) ? 'GET' : ($from === $_POST ? 'POST' : ($from === $_COOKIE ? 'COOKIE' : 'REFERENCED')));
 		$msg = str_replace('%SOURCE%', $place, $msg);
-		if ($critical && class_exists(pwebframework::$exceptionClass)) {
-			throw new pwebframework::$exceptionClass($msg);
+		if ($critical && class_exists(pwebframework::$requestExceptionClass)) {
+			throw new pwebframework::$requestExceptionClass($msg);
 		}
 		trigger_error($msg, ($critical ? E_USER_ERROR : E_USER_WARNING));
 	}

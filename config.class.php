@@ -18,6 +18,8 @@
  * You can also define your configuration as a standalone PHP file that returns an array,
  * and load it with Config::loadFile().
  *
+ * :TODO: use non-static method of property loading when php < 5.3
+ *
  * @author		Sam Pospischil <pospi@spadgos.com>
  */
 class Config
@@ -38,7 +40,7 @@ class Config
 		if ($conf) {
 			self::load($conf);
 		} else {
-			throw new pwebframework::$exceptionClass("Configuration file incorrectly formatted, should return an array");
+			throw new pwebframework::$configExceptionClass("Configuration file incorrectly formatted, should return an array");
 		}
 	}
 
@@ -55,7 +57,7 @@ class Config
 	 * Allows reading config variables by using their names as function names.
 	 * Subproperties can be read by passing subkeys into the function call.
 	 *
-	 * @throws pwebframework::$exceptionClass
+	 * @throws pwebframework::$configExceptionClass
 	 * @param  [string] $method top-level property to read
 	 * @param  [array]  $args   further property keys to read into
 	 * @return [mixed]
@@ -72,7 +74,7 @@ class Config
 					if ($arg == '*' && is_array($target)) {		// pick array element
 						$target = $target[array_rand($target)];
 					} else if (!isset($target[$arg])) {			// variable didnt exist
-						throw new pwebframework::$exceptionClass("Specified config variable '{$method}." . implode('.', $accessedKeys) . "' did not exist");
+						throw new pwebframework::$configExceptionClass("Specified config variable '{$method}." . implode('.', $accessedKeys) . "' did not exist");
 					} else {									// select subelement by name
 						$target = $target[$arg];
 					}
@@ -81,7 +83,7 @@ class Config
 			}
 			return self::$conf[$method];
 		}
-		throw new pwebframework::$exceptionClass("Specified config variable '$method' did not exist");
+		throw new pwebframework::$configExceptionClass("Specified config variable '$method' did not exist");
 	}
 
 	/**
@@ -91,7 +93,7 @@ class Config
 	 * This method accepts the same arguments as __callStatic(), and will throw an exception if
 	 * the targeted config variable is not an array of valid database connection parameters.
 	 *
-	 * @throws pwebframework::$exceptionClass
+	 * @throws pwebframework::$configExceptionClass
 	 * @return PDO
 	 */
 	public static function loadDatabaseConnection()
@@ -101,7 +103,7 @@ class Config
 		$params = self::__callStatic($method, $args);
 
 		if (!isset($params['host']) || !isset($params['user']) || !isset($params['pass']) || !isset($params['name'])) {
-			throw new pwebframework::$exceptionClass("Configuration error - database parameters not correctly defined for $method");
+			throw new pwebframework::$configExceptionClass("Configuration error - database parameters not correctly defined for $method");
 		}
 
 		$dbType = self::$PDOType;

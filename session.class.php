@@ -39,8 +39,8 @@ class Session implements ArrayAccess
 	{
 		if (is_null($offset)) {
 			$msg = 'Attempted to set session variable without passing a key';
-			if (class_exists(pwebframework::$exceptionClass)) {
-				throw new pwebframework::$exceptionClass($msg);
+			if (class_exists(pwebframework::$sessionExceptionClass)) {
+				throw new pwebframework::$sessionExceptionClass($msg);
 			}
 			trigger_error($msg, E_USER_ERROR);
 		} else {
