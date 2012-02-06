@@ -332,8 +332,8 @@ class ProcessLogger implements ArrayAccess {
 			$line = str_replace(array(
 					'%f', '%l', '%c', '%t', '%n', '%m'
 				), array(
-					$data['file'],
-					$data['line'],
+					isset($data['file']) ? $data['file'] : '',	// :NOTE: there is no file or line in shutdown callbacks and other weird functions
+					isset($data['line']) ? $data['line'] : '',
 					(isset($data['class'])	? $data['class']: ''),
 					(isset($data['type'])	? $data['type']	: ''),
 					$data['function'],
