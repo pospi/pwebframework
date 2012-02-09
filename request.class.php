@@ -36,6 +36,8 @@ abstract class Request
 	private	static $REQUEST_MODE = null;
 	private static $QUERY_PARAMS = null;
 	private static $HTTP_HEADERS = null;
+	private static $LOCAL_IP = null;	// cache these, they involve a name lookup which is potentially slow
+	private static $LOCAL_HOST = null;
 
 	//==================================================================================================================
 	//		Request interrogation
@@ -390,6 +392,7 @@ abstract class Request
 	//		Other useful stuff
 
 	// Get remote IP address, and attempt to provide 'real' address when a proxy is involved
+	// this method will not work under CLI
 	public static function getRemoteIP()
 	{
 		return isset($_SERVER['HTTP_CLIENT_IP']) ? $_SERVER['HTTP_CLIENT_IP'] : (
@@ -397,8 +400,29 @@ abstract class Request
 		);
 	}
 
+	// Return the local IP address of this server. Will work under CLI with PHP > 5.3.
+	public static function getLocalIP()
+	{
+		if (isset(self::$LOCAL_IP)) {
+			return self::$LOCAL_IP;
+		}
+		if (Request::getRequestMethod() == self::RM_CLI) {
+			$ips = gethostbynamel(self::getHTTPHost());
+			$ip = '127.0.0.1';
+			foreach ($ips as $ip) {
+				if ($ip != '127.0.0.1') {
+					break;
+				}
+			}
+			self::$LOCAL_IP = $ip;
+		} else {
+			self::$LOCAL_IP = $_SERVER['SERVER_ADDR'];
+		}
+		return self::$LOCAL_IP;
+	}
+
 	// retrieve the document root without relying on apache's environment var (which is obviously not present under IIS)
-	// :WARNING: this method will not work under CLI
+	// this method will not work under CLI
 	public static function getDocumentRoot()
 	{
 		if (isset($_SERVER['SCRIPT_FILENAME'])) {
@@ -410,10 +434,19 @@ abstract class Request
 		return $_SERVER['DOCUMENT_ROOT'];
 	}
 
+	// Return this server's hostname
 	public static function getHTTPHost()
 	{
-		// some agents may send the port number as part of the hostname
-		return preg_replace('/\:\d+$/', '', $_SERVER['HTTP_HOST']);
+		if (isset(self::$LOCAL_HOST)) {
+			return self::$LOCAL_HOST;
+		}
+		if (Request::getRequestMethod() == self::RM_CLI) {
+			self::$LOCAL_HOST = function_exists('gethostname') ? gethostname() : php_uname('n');
+		} else {
+			// some agents may send the port number as part of the hostname
+			self::$LOCAL_HOST = preg_replace('/\:\d+$/', '', $_SERVER['HTTP_HOST']);
+		}
+		return self::$LOCAL_HOST;
 	}
 
 	// only works under apache
