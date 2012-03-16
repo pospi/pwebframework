@@ -69,6 +69,9 @@ class Config
 			if (count($args)) {
 				$accessedKeys = array();
 				while (null !== ($arg = array_shift($args))) {
+					if (!is_scalar($arg)) {
+						throw new pwebframework::$configExceptionClass("Cannot locate config variable - index " . count($accessedKeys) . " is non-scalar");
+					}
 					$arg = strtolower($arg);
 					$accessedKeys[] = $arg;
 					if ($arg == '*' && is_array($target)) {		// pick array element
