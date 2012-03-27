@@ -91,7 +91,7 @@ class Config
 
 	/**
 	 * Helper for opening a PDO database connection pointed to by a configuration array.
-	 * Database connection details are stored under array elements 'host', 'user', 'pass' and 'name'.
+	 * Database connection details are stored under array elements 'host', 'user', 'pass', 'name' and optionally 'port'.
 	 *
 	 * This method accepts the same arguments as __callStatic(), and will throw an exception if
 	 * the targeted config variable is not an array of valid database connection parameters.
@@ -110,6 +110,6 @@ class Config
 		}
 
 		$dbType = self::$PDOType;
-		return new PDO("{$dbType}:dbname={$params['name']};host={$params['host']}", $params['user'], $params['pass']);
+		return new PDO("{$dbType}:dbname={$params['name']};host={$params['host']}" . (isset($params['port']) ? ";port={$params['port']}" : ''), $params['user'], $params['pass']);
 	}
 }
