@@ -409,8 +409,9 @@ abstract class Request
 		if (Request::getRequestMethod() == self::RM_CLI) {
 			$ips = gethostbynamel(self::getHTTPHost());
 			$ip = '127.0.0.1';
-			foreach ($ips as $ip) {
-				if ($ip != '127.0.0.1') {
+			foreach ($ips as $oip) {
+				if ($oip != '127.0.0.1') {
+					$ip = $oip;
 					break;
 				}
 			}
