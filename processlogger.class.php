@@ -271,8 +271,11 @@ class ProcessLogger implements ArrayAccess {
 		}
 
 		$fatal = $this->logError($errno, $errstr, $errfile, $errline, ($doTrace ? debug_backtrace() : array()));
+		if ($fatal) {
+			exit(1);
+		}
 
-		return $fatal ? false : $this->immediateOutput;		// send the error back up to the builtin error handler, but only if we aren't outputting it immediately
+		return $this->immediateOutput;		// send the error back up to the builtin error handler, but only if we aren't outputting it immediately
 	}
 
 	public function __exception($e) {
@@ -284,12 +287,12 @@ class ProcessLogger implements ArrayAccess {
 
 		if ($this->exceptionHandler) {
 			list($message, $file, $line, $trace) = call_user_func($this->exceptionHandler, $e);
-			$fatal = $this->logError(-1, $message, $file, $line, $trace);
+			$this->logError(-1, $message, $file, $line, $trace);
 		} else {
-			$fatal = $this->logError(-1, $e->getMessage(), $e->getFile(), $e->getLine(), $e->getTrace());
+			$this->logError(-1, $e->getMessage(), $e->getFile(), $e->getLine(), $e->getTrace());
 		}
 
-		return $fatal ? false : $this->immediateOutput;
+		exit(1);
 	}
 
 	// @return bool indicating whether this was a fatal error
