@@ -192,7 +192,7 @@ class ProcessLogger implements ArrayAccess {
 					'FROM:' . $mail[2],
 					($mail[3] ? '-f' . $mail[3] : null)
 				  )) {
-					$this[] = "ERROR: Could not email migration log (to " . $this->sendAddress . ")";
+					$this[] = "ERROR: Could not email migration log (to {$mail[0]})";
 				}
 			}
 		}
