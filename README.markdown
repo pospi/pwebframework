@@ -35,14 +35,27 @@ Features
 
 Todo
 ----
-- Simplified header mutators
+
+=== Bugfixes ===
+- fix use of exception class names when not declared
+
+=== Improvements ===
+- Add ProcessLogger flag to reverse time insertion from ->t()
+- Allow setting ProcessLogger time format string
+- Implement non-static interface for Config class for compatibility with PHP < 5.3
+- Create simplified header mutator wrappers for common tasks (file download etc)
 - More socket request implementations
 
+=== Additions ===
+- DB class to subclass PDO with additional functionality
+- Thread management classes: Forker & Receiver.
+	- Thread creation with I/O & STDERR stream handles for controlling & reading child threads
+	- Thread pooling
+	- Simplified thread locking mechanism (flock)
 
 License
 -------
 This software is provided under an MIT open source license, read the 'LICENSE.txt' file for details.
-
 
 Copyright
 ---------
