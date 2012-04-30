@@ -317,7 +317,7 @@ class ProcessLogger implements ArrayAccess {
 			case -1: $type = 'exception'; break;
 		}
 
-		$this[] = "\nERROR<$type> at $file:$line\n  $msg\n  " . $this->readableTrace($trace);
+		$this->t("\nERROR<$type> at $file:$line\n  $msg\n  " . $this->readableTrace($trace));
 
 		return strpos($type, 'fatal') !== false;
 	}
