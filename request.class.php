@@ -303,7 +303,7 @@ abstract class Request
 	 * Resolve two URIs against one another. The resulting URL will be the same as
 	 * a browser navigating from $sourceUri to $destUri.
 	 *
-	 * @param  string $sourceUri source URI to resolve against. This must be an absolute URI.
+	 * @param  string $sourceUri source URI to resolve against. This must be an absolute URI. If the resource is a directory it must end in a trailing slash.
 	 * @param  string $destUri   destination URI to navigate to
 	 * @return the absolute URI determined by resolving $destUrl against $sourceUrl
 	 */
@@ -316,22 +316,48 @@ abstract class Request
 
 		$srcUrl = parse_url($sourceUri);
 
-		$str = "{$srcUrl['scheme']}://";
+		$uriStart = "{$srcUrl['scheme']}://";
 		if (isset($srcUrl['user']) || isset($srcUrl['pass'])) {
-			$str .= "{$srcUrl['user']}:{$srcUrl['pass']}@";
+			$uriStart .= "{$srcUrl['user']}:{$srcUrl['pass']}@";
 		}
-		$str .= $srcUrl['host'];
+		$uriStart .= $srcUrl['host'];
 
 		if (isset($srcUrl['port'])) {
-			$str .= ":{$srcUrl['port']}";
+			$uriStart .= ":{$srcUrl['port']}";
 		}
 
 		if (strpos($destUri, '/') === 0) {
-			return $str . $destUri;	// server-relative
+			return $uriStart . $destUri;	// server-relative
 		}
 
-		// file-relative
-		return realpath($sourceUri . $destUri);
+		// must be file-relative. Determine base dir.
+		$path = $srcUrl['path'];
+		if (substr($path, -1) !== '/') {
+			$parts = explode('/', $path);
+			array_pop($parts);
+			$path = implode('/', $parts);
+		}
+
+		// strip out CWDs & double slashes
+		$finalUri = preg_replace('@(/\./)|(/+)@', '/', $path . '/' . $destUri);
+
+		// strip out relative dirs
+		$parts = explode('/', $finalUri);
+		$dirs = array();
+		$count = 1;
+		foreach ($parts as $part) {
+			if ($part === '') {
+				continue;
+			}
+			if ($part === "..") {
+				unset($dirs[$count - 1]);
+			} else {
+				$dirs[$count] = $part;
+			}
+			++$count;
+		}
+
+		return $uriStart . '/' . implode('/', $dirs);
 	}
 
 	private static function storeQueryParams()
