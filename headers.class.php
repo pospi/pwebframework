@@ -455,6 +455,103 @@ class Headers implements ArrayAccess, Iterator, Countable
 
 	//============================================================================================================
 
+	// Determine if the remote server sent us any cookies
+	public function hasSetCookies()
+	{
+		return !empty($this->fields['set-cookie']);
+	}
+
+	// Retrieve all SERVER cookies being sent to us
+	public function getSetCookies()
+	{
+		if (!isset($this->fields['set-cookie'])) {
+			return false;
+		}
+		$cookies = is_array($this->fields['set-cookie']) ? $this->fields['set-cookie'] : array($this->fields['set-cookie']);
+
+		$cookieData = array();
+		foreach ($cookies as $c) {
+			$thisCookie = $this->parseCookie($c);
+			if ($thisCookie) {
+				$cookieData[$thisCookie['name']] = $thisCookie;
+			}
+		}
+		return $cookieData;
+	}
+
+	// Retrive all CLIENT cookies to be sent
+	public function getCookies()
+	{
+		if (!isset($this->fields['cookie'])) {
+			return false;
+		}
+		$cookies = is_array($this->fields['cookie']) ? $this->fields['cookie'] : array($this->fields['cookie']);
+
+		$cookieData = array();
+		foreach ($cookies as $c) {
+			$cParts = explode(';', $c);
+			foreach ($cParts as $part) {
+				$part = explode('=', $part);
+				$cookieData[trim($part[0])] = trim($part[1]);
+			}
+		}
+		return $cookieData;
+	}
+
+	// Converts cookies sent from a server into an outgoing cookie headers object to pass to the next request
+	public function createCookieResponseHeaders()
+	{
+		$cookies = $this->getSetCookies();
+		if (!$cookies) {
+			return new Headers();	// nothing to pass on
+		}
+
+		$cArray = array();
+		foreach ($cookies as $name => $cookie) {
+			if (isset($cookie['expires']) && $cookie['expires'] < time()) {
+				continue;	// skip expired cookies
+			}
+			$cArray[] = urlencode($name) . '=' . urlencode($cookie['value']);
+		}
+
+		$newH = new Headers();
+		$newH['cookie'] = implode('; ', $cArray);
+
+		return $newH;
+	}
+
+	/**
+	 * Cookie header parser.
+	 * :TODO: allow parsing cookies containing ; or = characters inside double quotes
+	 */
+	private function parseCookie($cookieStr)
+	{
+		$csplit = explode(';', $cookieStr);
+		$cdata = array();
+		foreach ($csplit as $data) {
+			$cinfo = explode('=', $data);
+			$cSubVal = $cinfo[1];
+			$cSubName = trim($cinfo[0]);
+			if ($cSubName == 'expires') {
+				$cSubVal = strtotime($cSubVal);
+			} else if ($cSubName == 'secure') {
+				$cSubVal = 'true';
+			} else if ($cSubName == 'max-age') {
+				$cSubName = 'expires';
+				$cSubVal = time() + intval($cSubVal);
+			}
+			if (in_array($cSubName, array('domain', 'expires', 'max-age', 'path', 'port', 'secure', 'version', 'comment', 'commenturl', 'discard'))) {
+				$cdata[$cSubName] = $cSubVal;
+			} else {
+				$cdata['name'] = $cSubName;
+				$cdata['value'] = urldecode($cSubVal);
+			}
+		}
+		return isset($cdata['name']) ? $cdata : false;
+	}
+
+	//============================================================================================================
+
 	// return the full HTTP header string for a status code
 	public static function getStatusLine($code)
 	{
