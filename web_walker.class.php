@@ -100,6 +100,14 @@ class WebWalker
 	}
 
 	/**
+	 * Clears all persistent cookies being sent with this WebWalker's requests
+	 */
+	public function clearCookies()
+	{
+		$this->sendHeaders = null;
+	}
+
+	/**
 	 * Store some variable into the WebWalker instance to allow
 	 * retrieving it from a different page callback
 	 * @param  string $key variable name
