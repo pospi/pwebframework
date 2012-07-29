@@ -205,6 +205,17 @@ class Headers implements ArrayAccess, Iterator, Countable
 		return true;
 	}
 
+	/**
+	 * Merge headers from another Headers object into our own.
+	 * If the headers already exist, two of the same name will be output (:TODO: should this append?)
+	 */
+	public function merge(Headers $other)
+	{
+		foreach ($other as $k => $v) {
+			$this->add($k, $v);
+		}
+	}
+
 	//========================================================================
 	//	Iterator implementation. Iterates first level header block only.
 
