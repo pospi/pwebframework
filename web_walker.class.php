@@ -22,6 +22,10 @@ class WebWalker
 {
 	private $log;
 	private $currentPage;
+
+	public $passCookies = true;		// if true, pass cookies from set-cookie along with requests
+	private $sendHeaders = null;	// Headers object storing cookie data if $passCookies is true
+
 	public $currentURL;
 
 	private $storedVars = array();		// arbitrary data storage for use in callbacks
@@ -33,10 +37,13 @@ class WebWalker
 
 	/**
 	 * Walk a map of pages based on data within the DOM
+	 *
 	 * @param  array $dataMap map of data to crawl. This array takes the following format:
 	 *      'url'		: url to load.
+	 *      'method'	: method for the request. Defaults to GET.
 	 *		'targets'	: mapping of CSS selectors matching elements in the dom to callbacks to
-	 *					  run against each matched element in the set.
+	 *					  run against each matched element in the set. If the key is 0 or an empty string, the target applies to the entire page.
+	 *      'data'		: array of data to send with the request when using POST method
 	 *	For example:
 	 *		'url' => '...',
 	 *		'targets' => array(
@@ -46,6 +53,8 @@ class WebWalker
 	 *				// whatever.
 	 *			},
 	 *		)
+	 *
+	 * :TODO: make use of callback return values
 	 */
 	public function walk($dataMap)
 	{
@@ -53,34 +62,38 @@ class WebWalker
 
 		// get the url to read
 		$url = $dataMap['url'];
+		$method = isset($dataMap['method']) ? $dataMap['method'] : null;
+		$data = isset($dataMap['data']) ? $dataMap['data'] : array();
 
 		// read the page HTML
-		$page = $this->getPage($url);
+		$page = $this->getPage($url, $method, $data);
 
 		// initialise the current page so that callbacks can select from it if necessary
 		$this->currentURL = $url;
 		$this->currentPage = new SelectorDOM($page);
 
-		$targetIdx = 0;
-
 		$this->indentLog();
 
 		// find all the target elements and process them in turn
 		foreach ($dataMap['targets'] as $selector => $callback) {
+			// if the selector applies to no specific element, run it
+			if (!$selector) {
+				$returnVal = call_user_func($callback, $this, $this->currentPage->xpath);
+				continue;
+			}
+
 			$domNodes = $this->select($selector);
 
 			// go through all matched DOM nodes and process the callback against them
 			$domResults = array();
 			foreach ($domNodes as $i => $domEl) {
-				$returnVal = $callback($this, $domEl);
+				$returnVal = call_user_func($callback, $this, $domEl);
 				if ($returnVal === false) {
 					// chain broken, abort
 					break;
 				}
 				$domResults[$i] = $returnVal;
 			}
-
-			$targetIdx++;
 		}
 
 		$this->unindentLog();
@@ -143,15 +156,30 @@ class WebWalker
 	//----------------------------------------------------------------------------------
 	//	Internals
 
-	private function getPage($url)
+	private function getPage($url, $method = null, $data = array())
 	{
 		$this->log("Requesting page: $url");
 
+		// make the request
 		$request = HTTPProxy::getProxy($url);
 		$time = microtime(true);
-		$document = $request->getDocument();
+
+		if (strtolower($method) == 'post') {
+			$document = $request->postData($data, $this->sendHeaders);
+		} else {
+			$document = $request->getDocument($this->sendHeaders);
+		}
 
 		$this->log("Request completed in " . ProcessLogger::since($time) . "s");
+
+		// check the response for cookies and store to the cookie cache if found
+		if ($this->passCookies && $request->headers->hasSetCookies()) {
+			if (!$this->sendHeaders) {
+				$this->sendHeaders = new Headers();
+			}
+			$cookieHeaders = $request->headers->createCookieResponseHeaders();
+			$this->sendHeaders->merge($cookieHeaders);
+		}
 
 		return $document;
 	}
