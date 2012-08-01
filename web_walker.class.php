@@ -16,7 +16,7 @@
 
 require_once('processlogger.class.php');
 require_once('http_proxy.class.php');
-require_once('lib/cssselector.php');
+require_once('css_selector.class.php');
 
 class WebWalker
 {
