@@ -78,7 +78,7 @@ class WebWalker
 		foreach ($dataMap['targets'] as $selector => $callback) {
 			// if the selector applies to no specific element, run it
 			if (!$selector) {
-				$returnVal = call_user_func($callback, $this, $this->currentPage->xpath);
+				$returnVal = call_user_func($callback, $this, $this->currentPage->dom);
 				continue;
 			}
 
