@@ -166,7 +166,7 @@ class WebWalker
 	 */
 	public function innerText($node)
 	{
-		return trim($node->nodeValue);
+		return isset($node->nodeValue) ? trim($node->nodeValue) : null;
 	}
 
 	//----------------------------------------------------------------------------------
