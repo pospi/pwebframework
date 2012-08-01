@@ -38,12 +38,14 @@ class WebWalker
 	/**
 	 * Walk a map of pages based on data within the DOM
 	 *
-	 * @param  array $dataMap map of data to crawl. This array takes the following format:
+	 * @param  array $dataMap map of data to crawl. This array may contain the following elements:
 	 *      'url'		: url to load.
 	 *      'method'	: method for the request. Defaults to GET.
 	 *		'targets'	: mapping of CSS selectors matching elements in the dom to callbacks to
 	 *					  run against each matched element in the set. If the key is 0 or an empty string, the target applies to the entire page.
 	 *      'data'		: array of data to send with the request when using POST method
+	 *      'validate'	: A callback function for validating the input page HTML. This method receives the LibXML error and HTML string as parameters.
+	 *      			  If a page is determined to be invalid, you should throw an MalformedPageException to indicate to WebWalker to skip that page.
 	 *	For example:
 	 *		'url' => '...',
 	 *		'targets' => array(
@@ -69,8 +71,14 @@ class WebWalker
 		$page = $this->getPage($url, $method, $data);
 
 		// initialise the current page so that callbacks can select from it if necessary
+		$prevPage = $this->currentPage;
 		$this->currentURL = $url;
-		$this->currentPage = new SelectorDOM($page);
+		try {
+			$this->currentPage = new SelectorDOM($page, isset($dataMap['validate']) ? $dataMap['validate'] : null);
+		} catch (MalformedPageException $e) {
+			$this->currentPage = $prevPage;
+			return;
+		}
 
 		$this->indentLog();
 
@@ -224,3 +232,10 @@ class WebWalker
 		}
 	}
 }
+
+
+/**
+ * Exception subclass for managing invalid page markup in crawler scripts
+ */
+class MalformedPageException extends Exception
+{}

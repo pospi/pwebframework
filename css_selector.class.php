@@ -19,11 +19,35 @@ class SelectorDOM
 	public $dom;	// DOMDocument instance being queried
 	public $xpath;	// DOMXpath object responsible for querying
 
-	public function SelectorDOM($html)
+	/**
+	 * @param [string]   $html         HTML string to perform CSS queries on
+	 * @param [callable] $errorHandler Optional custom error handler for handling LibXML errors. If not present, parser errors are ignored.
+	 *                                 You will probably want to interpret error codes within this callback and throw an exception to be caught elsewhere.
+	 */
+	public function SelectorDOM($html, $errorHandler = null)
 	{
+		if ($errorHandler) {
+			$xmlErrorSetting = libxml_use_internal_errors(true);
+		}
+
 		$this->dom = new DOMDocument();
-		@$this->dom->loadHTML($html);
+
+		if ($errorHandler) {
+			$this->dom->loadHTML($html);
+			$errors = libxml_get_errors();
+			foreach ($errors as $error) {
+				call_user_func($errorHandler, $error, $html);
+			}
+			libxml_clear_errors();
+		} else {
+			@$this->dom->loadHTML($html);
+		}
+
 		$this->xpath = new DOMXpath($this->dom);
+
+		if ($errorHandler) {
+			libxml_use_internal_errors($xmlErrorSetting);
+		}
 	}
 
 	public function select($selector, $as_array = true)
