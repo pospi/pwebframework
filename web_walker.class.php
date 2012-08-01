@@ -68,16 +68,23 @@ class WebWalker
 		$data = isset($dataMap['data']) ? $dataMap['data'] : array();
 
 		// read the page HTML
-		$page = $this->getPage($url, $method, $data);
+		list($page, $headers) = $this->getPage($url, $method, $data);
 
 		// initialise the current page so that callbacks can select from it if necessary
-		$prevPage = $this->currentPage;
-		$this->currentURL = $url;
-		try {
-			$this->currentPage = new SelectorDOM($page, isset($dataMap['validate']) ? $dataMap['validate'] : null);
-		} catch (MalformedPageException $e) {
-			$this->currentPage = $prevPage;
+		$newPage = new SelectorDOM($page, isset($dataMap['validate']) ? $dataMap['validate'] : null);
+		if ($newPage->dom === false) {
 			return;
+		}
+		$this->currentPage = $newPage;
+		$this->currentURL = $url;
+
+		// check the response for cookies and store to the cookie cache if found
+		if ($this->passCookies && isset($headers) && $headers->hasSetCookies()) {
+			if (!$this->sendHeaders) {
+				$this->sendHeaders = new Headers();
+			}
+			$cookieHeaders = $headers->createCookieResponseHeaders();
+			$this->sendHeaders->merge($cookieHeaders);
 		}
 
 		$this->indentLog();
@@ -188,16 +195,7 @@ class WebWalker
 
 		$this->log("Request completed in " . ProcessLogger::since($time) . "s");
 
-		// check the response for cookies and store to the cookie cache if found
-		if ($this->passCookies && $request->headers->hasSetCookies()) {
-			if (!$this->sendHeaders) {
-				$this->sendHeaders = new Headers();
-			}
-			$cookieHeaders = $request->headers->createCookieResponseHeaders();
-			$this->sendHeaders->merge($cookieHeaders);
-		}
-
-		return $document;
+		return array($document, $request->headers);
 	}
 
 	//----------------------------------------------------------------------------------
@@ -232,10 +230,3 @@ class WebWalker
 		}
 	}
 }
-
-
-/**
- * Exception subclass for managing invalid page markup in crawler scripts
- */
-class MalformedPageException extends Exception
-{}

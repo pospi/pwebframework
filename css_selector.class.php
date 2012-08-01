@@ -35,10 +35,13 @@ class SelectorDOM
 		if ($errorHandler) {
 			$this->dom->loadHTML($html);
 			$errors = libxml_get_errors();
-			foreach ($errors as $error) {
-				call_user_func($errorHandler, $error, $html);
-			}
 			libxml_clear_errors();
+			foreach ($errors as $error) {
+				if (false === call_user_func($errorHandler, $error, $html)) {
+					$this->dom = false;
+					return;
+				}
+			}
 		} else {
 			@$this->dom->loadHTML($html);
 		}
