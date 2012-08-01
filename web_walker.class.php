@@ -147,8 +147,8 @@ class WebWalker
 		$node = $newDocument->importNode($node, true);
 		$newDocument->appendChild($node);
 		$xpath = new DOMXpath($newDocument);
-		$elements = $xpath->evaluate(selector_to_xpath($css));
-    	return $asArray ? elements_to_array($elements) : $elements;
+		$elements = $xpath->evaluate(SelectorDOM::selector_to_xpath($css));
+    	return $asArray ? SelectorDOM::elements_to_array($elements) : $elements;
 	}
 
 	/**
