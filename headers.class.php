@@ -584,7 +584,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 	private function mergeCookieHeaders($currHeader, $newHeader)
 	{
 		$newCookies = array_merge($this->parseClientCookie($currHeader), $this->parseClientCookie($newHeader));
-		$this->fields['cookie'] = http_build_query($newCookies, '', '; ');
+		return http_build_query($newCookies, '', '; ');
 	}
 
 	//============================================================================================================
