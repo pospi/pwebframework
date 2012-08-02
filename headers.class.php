@@ -66,6 +66,11 @@ class Headers implements ArrayAccess, Iterator, Countable
 		505 => 'HTTP Version Not Supported',
 	);
 
+	// callbacks used to handle merging of special-case headers. By default, adding a header will just output it twice.
+	private static $MERGE_HELPERS = array(
+		'cookie' => 'mergeCookieHeaders',
+	);
+
 	protected $fields = array();
 
 	public $previousHeader = null;			// header blocks can be stacked, so that we can parse multiple redirects etc and show the request history
@@ -156,10 +161,16 @@ class Headers implements ArrayAccess, Iterator, Countable
 
 			$this->fields[0] = $v;
 		} else if (isset($this->fields[$k])) {
-			if (!is_array($this->fields[$k])) {
-				$this->fields[$k] = array($this->fields[$k]);
+			// check for a special-case merge handler for this header field
+			if (isset(self::$MERGE_HELPERS[$k])) {
+				$this->fields[$k] = call_user_func(array($this, self::$MERGE_HELPERS[$k]), $this->fields[$k], $v);
+			} else {
+				// if there isn't one, we just add the header twice
+				if (!is_array($this->fields[$k])) {
+					$this->fields[$k] = array($this->fields[$k]);
+				}
+				$this->fields[$k][] = $v;
 			}
-			$this->fields[$k][] = $v;
 		} else {
 			$this->fields[$k] = $v;
 		}
@@ -482,7 +493,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 
 		$cookieData = array();
 		foreach ($cookies as $c) {
-			$thisCookie = $this->parseCookie($c);
+			$thisCookie = $this->parseServerCookie($c);
 			if ($thisCookie) {
 				$cookieData[$thisCookie['name']] = $thisCookie;
 			}
@@ -500,11 +511,7 @@ class Headers implements ArrayAccess, Iterator, Countable
 
 		$cookieData = array();
 		foreach ($cookies as $c) {
-			$cParts = explode(';', $c);
-			foreach ($cParts as $part) {
-				$part = explode('=', $part);
-				$cookieData[trim($part[0])] = trim($part[1]);
-			}
+			$cookieData = array_merge($cookieData, $this->parseClientCookie($c));
 		}
 		return $cookieData;
 	}
@@ -532,10 +539,10 @@ class Headers implements ArrayAccess, Iterator, Countable
 	}
 
 	/**
-	 * Cookie header parser.
+	 * Cookie header parsers.
 	 * :TODO: allow parsing cookies containing ; or = characters inside double quotes
 	 */
-	private function parseCookie($cookieStr)
+	private function parseServerCookie($cookieStr)
 	{
 		$csplit = explode(';', $cookieStr);
 		$cdata = array();
@@ -559,6 +566,25 @@ class Headers implements ArrayAccess, Iterator, Countable
 			}
 		}
 		return isset($cdata['name']) ? $cdata : false;
+	}
+
+	private function parseClientCookie($cookieStr)
+	{
+		$cookieData = array();
+		$cParts = explode(';', $cookieStr);
+		foreach ($cParts as $part) {
+			$part = explode('=', $part);
+			$cookieData[trim($part[0])] = trim($part[1]);
+		}
+		return $cookieData;
+	}
+
+	//============================================================================================================
+
+	private function mergeCookieHeaders($currHeader, $newHeader)
+	{
+		$newCookies = array_merge($this->parseClientCookie($currHeader), $this->parseClientCookie($newHeader));
+		$this->fields['cookie'] = http_build_query($newCookies, '', '; ');
 	}
 
 	//============================================================================================================
