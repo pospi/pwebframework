@@ -21,8 +21,9 @@
 		array(k1, k2, k3, ...kN)	- array of indices into child block arrays
 		"k1.k2.k3.k4"				- period-separated block index
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
-	@date		2010-07-08
+	@since		8/7/2010
   ===============================================================================*/
 
 require_once('headers.class.php');

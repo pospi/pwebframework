@@ -20,7 +20,9 @@
  *
  * :TODO: use non-static method of property loading when php < 5.3
  *
- * @author		Sam Pospischil <pospi@spadgos.com>
+ * @package pWebFramework
+ * @author	Sam Pospischil <pospi@spadgos.com>
+ * @since	29/1/2012
  */
 class Config
 {

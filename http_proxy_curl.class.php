@@ -4,7 +4,9 @@
 	----------------------------------------------------------------------------
 	Handles HTTP requests using cURL
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
+	@since		15/3/2011
   ===============================================================================*/
 
 class ProxyCURL extends HTTPProxy

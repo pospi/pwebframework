@@ -8,9 +8,10 @@
  * $links = $dom->select('a');
  * $list_links = $dom->select('ul li a');
  *
- * @author TJ Holowaychuk <tj@vision-media.ca>
- * @author Sam Pospischil <pospi@spadgos.com>
- * @license MIT
+ * @package	pWebFramework
+ * @author	TJ Holowaychuk <tj@vision-media.ca>
+ * @author	Sam Pospischil <pospi@spadgos.com>
+ * @license	MIT
  */
 define('SELECTOR_VERSION', '1.1.5');
 

@@ -43,7 +43,9 @@
  * array from this callback containing the message, file path, line number and stack
  * trace array (@see debug_backtrace()) to output in the log.
  *
+ * @package pWebFramework
  * @author  Sam Pospischil <pospi@spadgos.com>
+ * @since	4/11/2010
  */
 
 class ProcessLogger implements ArrayAccess {

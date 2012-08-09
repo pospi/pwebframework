@@ -7,8 +7,9 @@
 	tasks include input sanitisation from $_GET, $_POST and others; request
 	mode (http, ajax, cli, ...) etc
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
-	@date		2010-04-22
+	@since		22/4/2010
   ===============================================================================*/
 
 require_once('headers.class.php');

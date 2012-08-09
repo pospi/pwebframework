@@ -19,7 +19,9 @@
 	request data.
 	This behaviour can be disabled with followRedirects(false)
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
+	@since		15/3/2011
   ===============================================================================*/
 
 require_once('headers.class.php');

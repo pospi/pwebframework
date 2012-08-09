@@ -16,8 +16,9 @@
 
 		$s->logout(true);			// ends the remote agent's session and deletes their session cookie
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
-	@date		2010-03-18
+	@since		18/3/2010
   ===============================================================================*/
 
 class Session implements ArrayAccess

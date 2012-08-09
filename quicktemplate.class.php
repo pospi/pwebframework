@@ -10,8 +10,9 @@
 
 	Caution: this class makes use of output buffering.
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
-	@date		2011-04-05
+	@since		5/4/2011
   ===============================================================================*/
 
 class QuickTemplate

@@ -4,7 +4,9 @@
 	----------------------------------------------------------------------------
 	Handles HTTP requests using raw PHP sockets
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
+	:TODO:	complete this implementation
   ===============================================================================*/
 
 class ProxySocket extends HTTPProxy

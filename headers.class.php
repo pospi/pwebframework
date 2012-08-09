@@ -14,7 +14,9 @@
 		- header blocks earlier in the request chain recurse upwards
 		  through each array's "previousheader" member
 	----------------------------------------------------------------------------
+	@package	pWebFramework
 	@author		Sam Pospischil <pospi@spadgos.com>
+	@since		5/4/2011
   ===============================================================================*/
 
 class Headers implements ArrayAccess, Iterator, Countable

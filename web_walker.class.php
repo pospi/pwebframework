@@ -9,9 +9,9 @@
  *
  * :TODO: threading
  *
- * @depends PHP 5.3
- * @depends CSS Selector (c) Copyright TJ Holowaychuk <tj@vision-media.ca> MIT Licensed
+ * @package pWebFramework
  * @author  Sam Pospischil <pospi@spadgos.com>
+ * @since	29/1/2012
  */
 
 require_once('processlogger.class.php');
