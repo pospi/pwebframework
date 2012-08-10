@@ -30,9 +30,13 @@ class WebWalker
 
 	private $storedVars = array();		// arbitrary data storage for use in callbacks
 
+	// caching variables
 	private $cacheDir = false;
 	private $cacheFileTemplate;
 	private $requestCount = 0;
+
+	private $useCache = false;	// read from cache
+	const CACHEFILE_PAD_LEN = 6;	// pad length for cached request numbers in filenames ('000006' etc). Determines overall maximum cache size.
 
 	public function __construct(ProcessLogger $logger = null)
 	{
@@ -187,9 +191,17 @@ class WebWalker
 	 * Downloads a URL to a local file, retrying up to 5 times if failed
 	 * @param  [string] $url        URL to download data from
 	 * @param  [string] $destFolder destination folder to download the file to
+	 * @param  [bool]	$replace	set to false to skip downloading the file if it already exists
 	 */
-	public function download($url, $destFolder)
+	public function download($url, $destFolder, $replace = true)
 	{
+		$destPath = rtrim($destFolder, ' /') .'/'. basename($url);
+
+		if (!$replace && file_exists($destPath)) {
+			$this->log("Skip downloading file $url - already present");
+			return;
+		}
+
 		$this->log("Downloading file $url");
 		$this->indentLog();
 
@@ -197,7 +209,7 @@ class WebWalker
 		while ($retries < 5) {
 			$data = @file_get_contents($url);
 			if (false !== $data) {
-				file_put_contents(rtrim($destFolder, ' /') .'/'. basename($url), $data);
+				file_put_contents($destPath, $data);
 				break;
 			}
 			$retries++;
@@ -216,10 +228,19 @@ class WebWalker
 	 * @param  string $template	filename prefix template, 1st specifier is url, 2nd is request number wildcard.
 	 *                          All files are suffixed by date('ymd-His') and the extension HTML.
 	 */
-	public function cachePages($toDir = false, $template = 'request-%2$06d_%1$s_')
+	public function cachePages($toDir = false, $template = 'request-%2$s_%1$s_')
 	{
 		$this->cacheDir = $toDir;
 		$this->cacheFileTemplate = $template;
+	}
+
+	/**
+	 * Enable reading of locally cached files instead of remote files, if present on disk already
+	 * @param  boolean $read whether or not to enable caching
+	 */
+	public function readFromCache($read = true)
+	{
+		$this->useCache = $read;
 	}
 
 	//----------------------------------------------------------------------------------
@@ -227,9 +248,19 @@ class WebWalker
 
 	private function getPage($url, $method = null, $data = array())
 	{
+		// check for a cached request file
+		if ($this->useCache && $this->cacheDir) {
+			$caches = glob(rtrim($this->cacheDir, ' /') . '/' . sprintf($this->cacheFileTemplate, '*', str_pad($this->requestCount, self::CACHEFILE_PAD_LEN, '0', STR_PAD_LEFT)) . '*.html');
+
+			if (count($caches) == 1) {
+				$this->log("Reading cached page for $url");
+				return array(file_get_contents($caches[0]), new Headers(file_get_contents($caches[0] . '.headers')));
+			}
+		}
+
+		// make the request if not cached
 		$this->log("Requesting page: $url");
 
-		// make the request
 		$request = HTTPProxy::getProxy($url);
 		$time = microtime(true);
 
@@ -241,12 +272,15 @@ class WebWalker
 
 		++$this->requestCount;
 		if ($this->cacheDir) {
-			file_put_contents(rtrim($this->cacheDir, ' /') . '/'
-							. sprintf($this->cacheFileTemplate,
-								preg_replace('&[^a-zA-Z0-9@\._\-=+\(\)\[\]]&', '_', str_replace(array('http://', 'https://'), '', $url)),
-								$this->requestCount
-							) . date('ymd-His') . '.html'
-						, $document);
+			$cachePath = rtrim($this->cacheDir, ' /') . '/'
+					. sprintf($this->cacheFileTemplate,
+						preg_replace('&[^a-zA-Z0-9@\._\-=+\(\)\[\]]&', '_', str_replace(array('http://', 'https://'), '', $url)),
+						str_pad($this->requestCount, self::CACHEFILE_PAD_LEN, '0', STR_PAD_LEFT)
+					) . date('ymd-His') . '.html';
+
+			// write response page & headers to cache
+			file_put_contents($cachePath, $document);
+			file_put_contents($cachePath . '.headers', $request->headers->toString());
 		}
 
 		$this->log("Request completed in " . ProcessLogger::since($time) . "s");
