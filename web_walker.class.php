@@ -30,6 +30,10 @@ class WebWalker
 
 	private $storedVars = array();		// arbitrary data storage for use in callbacks
 
+	private $cacheDir = false;
+	private $cacheFileTemplate;
+	private $requestCount = 0;
+
 	public function __construct(ProcessLogger $logger = null)
 	{
 		$this->log = $logger;
@@ -177,6 +181,48 @@ class WebWalker
 	}
 
 	//----------------------------------------------------------------------------------
+	//	Remote access
+
+	/**
+	 * Downloads a URL to a local file, retrying up to 5 times if failed
+	 * @param  [string] $url        URL to download data from
+	 * @param  [string] $destFolder destination folder to download the file to
+	 */
+	public function download($url, $destFolder)
+	{
+		$this->log("Downloading file $url");
+		$this->indentLog();
+
+		$retries = 0;
+		while ($retries < 5) {
+			$data = @file_get_contents($url);
+			if (false !== $data) {
+				file_put_contents(rtrim($destFolder, ' /') .'/'. basename($url), $data);
+				break;
+			}
+			$retries++;
+			$this->log("Download failed. Retrying ($retries)...");
+		}
+		$this->unindentLog();
+	}
+
+	//----------------------------------------------------------------------------------
+	//	Caching
+
+	/**
+	 * Passing a directory path to this method will cause all files encountered
+	 * to be saved here for later use.
+	 * @param  mixed  $toDir    directory to write to, or FALSE to disable page caching
+	 * @param  string $template	filename prefix template, 1st specifier is url, 2nd is request number wildcard.
+	 *                          All files are suffixed by date('ymd-His') and the extension HTML.
+	 */
+	public function cachePages($toDir = false, $template = 'request-%2$06d_%1$s_')
+	{
+		$this->cacheDir = $toDir;
+		$this->cacheFileTemplate = $template;
+	}
+
+	//----------------------------------------------------------------------------------
 	//	Internals
 
 	private function getPage($url, $method = null, $data = array())
@@ -191,6 +237,16 @@ class WebWalker
 			$document = $request->postData($data, $this->sendHeaders);
 		} else {
 			$document = $request->getDocument($this->sendHeaders);
+		}
+
+		++$this->requestCount;
+		if ($this->cacheDir) {
+			file_put_contents(rtrim($this->cacheDir, ' /') . '/'
+							. sprintf($this->cacheFileTemplate,
+								preg_replace('&[^a-zA-Z0-9@\._\-=+\(\)\[\]]&', '_', str_replace(array('http://', 'https://'), '', $url)),
+								$this->requestCount
+							) . date('ymd-His') . '.html'
+						, $document);
 		}
 
 		$this->log("Request completed in " . ProcessLogger::since($time) . "s");
