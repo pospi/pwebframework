@@ -248,13 +248,15 @@ class WebWalker
 
 	private function getPage($url, $method = null, $data = array())
 	{
+		++$this->requestCount;
+
 		// check for a cached request file
 		if ($this->useCache && $this->cacheDir) {
 			$caches = glob(rtrim($this->cacheDir, ' /') . '/' . sprintf($this->cacheFileTemplate, '*', str_pad($this->requestCount, self::CACHEFILE_PAD_LEN, '0', STR_PAD_LEFT)) . '*.html');
 
 			if (count($caches) == 1) {
 				$this->log("Reading cached page for $url");
-				return array(file_get_contents($caches[0]), new Headers(file_get_contents($caches[0] . '.headers')));
+				return array(file_get_contents($caches[0]), new Headers(@file_get_contents($caches[0] . '.headers')));
 			}
 		}
 
@@ -270,7 +272,6 @@ class WebWalker
 			$document = $request->getDocument($this->sendHeaders);
 		}
 
-		++$this->requestCount;
 		if ($this->cacheDir) {
 			$cachePath = rtrim($this->cacheDir, ' /') . '/'
 					. sprintf($this->cacheFileTemplate,
