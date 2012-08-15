@@ -85,4 +85,16 @@ class DBase_mysql extends DBase
 	{
 		return false !== @mysql_query("ROLLBACK", $this->conn);
 	}
+
+	public function __call($method, $args)
+	{
+		array_push($args, $this->conn);
+		return call_user_func_array('mysql_' . $method, $args);
+	}
+
+	public function __get($param)
+	{
+		$info = mysql_info($this->conn);
+		return isset($info[$param]) ? $info[$param] : null;
+	}
 }

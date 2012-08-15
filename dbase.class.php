@@ -480,10 +480,6 @@ abstract class DBase implements IDBase
 	 */
 	public function __call($method, $args)
 	{
-		if ($this->method == self::CONN_RAW) {
-			array_push($args, $this->conn);
-			return call_user_func_array('mysql_' . $method, $args);
-		}
 		return call_user_func_array(array($this->conn, $method), $args);
 	}
 
@@ -495,10 +491,6 @@ abstract class DBase implements IDBase
 	 */
 	public function __get($param)
 	{
-		if ($this->method == self::CONN_RAW) {
-			$info = mysql_info($this->conn);
-			return isset($info[$param]) ? $info[$param] : null;
-		}
 		return isset($this->conn->$param) ? $this->conn->$param : null;
 	}
 }
