@@ -15,6 +15,9 @@
  * @requires	PDO (PHP Data Objects), PHP MySQLi library or MySQL library
  * @requires	ProcessLogger if logging is to be enabled
  */
+
+class DBaseDisconnectedException extends Exception {}
+
 class DBase
 {
 	// supported database connection APIs
@@ -34,6 +37,7 @@ class DBase
 	// underlying connection object & method of connection
 	private $conn;
 	private $method = DBase::CONN_AUTO;
+	private $connParams;
 
 	private $lastAffectedRows;	// last operation's affected rowcount, only used with PDO
 
@@ -110,6 +114,15 @@ class DBase
 				break;
 		}
 		$this->method = $connectionMode;
+
+		// store connection parameters to allow reconnecting
+		$this->connParams = array(
+			'user' => $user,
+			'pass' => $pass,
+			'dbName' => $dbName,
+			'host' => $host,
+			'port' => $port,
+		);
 	}
 
 	/**
@@ -128,6 +141,20 @@ class DBase
 			trigger_error("Unknown connection type for provided database connection handle", E_USER_ERROR);
 		}
 		$this->conn = $conn;
+	}
+
+	/**
+	 * Reconnects to the database if possible (when constructed with string arguments rather than an existing DB reference)
+	 * @return true if reconnected
+	 */
+	public function reconnect()
+	{
+		if ($this->connParams) {
+			extract($this->connParams);
+			$this->connect($user, $pass, $dbName, $host, $port, $this->method);
+			return true;
+		}
+		return false;
 	}
 
 	//--------------------------------------------------------------------------
@@ -157,8 +184,14 @@ class DBase
 		}
 	}
 
-	private function error($msg, $code = 0)
+	private function error($msg, $code = 0, $skipRetry = false)
 	{
+		// check for a disconnection error code and automatically reconnect
+		if (!$skipRetry && ($code == 2006 || $code == 2013)) {
+			throw new DBaseDisconnectedException("Database disconnected", $code);
+		}
+
+		// otherwise trigger the error in whichever way is configured
 		if (isset(pwebframework::$dbaseExceptionClass)) {
 			throw new pwebframework::$dbaseExceptionClass($msg, $code);
 		}
@@ -206,7 +239,15 @@ class DBase
 		if ($result === false) {
 			$this->log("Bad query: {$sql}", true);
 			$errInfo = $this->lastError();
-			$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
+			try {
+				$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
+			} catch (DBaseDisconnectedException $e) {
+				if ($this->reconnect()) {
+					return $this->query($sql);
+				} else {
+					$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0], true);
+				}
+			}
 			return false;
 		}
 
@@ -259,7 +300,15 @@ class DBase
 		if (!$result) {
 			$this->log("Bad query: {$sql}", true);
 			$errInfo = $this->lastError();
-			$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
+			try {
+				$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
+			} catch (DBaseDisconnectedException $e) {
+				if ($this->reconnect()) {
+					return $this->exec($sql, $returnMode);
+				} else {
+					$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0], true);
+				}
+			}
 			return false;
 		}
 
