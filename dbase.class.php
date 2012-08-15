@@ -37,6 +37,8 @@ class DBase
 
 	private $lastAffectedRows;	// last operation's affected rowcount, only used with PDO
 
+	private $inTransaction = false;	// transaction flag
+
 	private $logger;			// ProcessLogger instance used for logging
 	private $logging = false;
 	private $debugLog = false;	// if true, output extra info to log
@@ -208,7 +210,7 @@ class DBase
 			return false;
 		}
 
-		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 3) . "msec.", true);
+		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 3) . " msec.", true);
 
 		return $result;
 	}
@@ -261,7 +263,7 @@ class DBase
 			return false;
 		}
 
-		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 2) . "msec.", true);
+		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 2) . " msec.", true);
 
 		// return the type of result we're looking for
 		switch ($returnMode) {
@@ -275,7 +277,7 @@ class DBase
 	}
 
 	//--------------------------------------------------------------------------
-	// database state
+	// database query state
 	//--------------------------------------------------------------------------
 
 	/**
@@ -325,6 +327,88 @@ class DBase
 			case self::CONN_RAW:
 				return array(mysql_errno($this->conn), mysql_error($this->conn));
 		}
+	}
+
+	//--------------------------------------------------------------------------
+	// transactions
+	//--------------------------------------------------------------------------
+
+	// :NOTE: these methods do not work with non-transactional table types (MyISAM or ISAM)
+
+	public function startTransaction()
+	{
+		if ($this->inTransaction) {
+			return false;	// already running a transaction
+		}
+
+		switch ($this->method) {
+			case self::CONN_PDO:
+				$ok = $this->conn->beginTransaction();
+				break;
+			case self::CONN_SQLI:
+				$ok = $this->conn->autocommit(false);
+				break;
+			case self::CONN_RAW:
+				$ok = false !== @mysql_query("BEGIN", $this->conn);
+				break;
+		}
+
+		if ($ok) {
+			$this->inTransaction = true;
+		}
+		return $ok;
+	}
+
+	public function abortTransaction()
+	{
+		if (!$this->inTransaction) {
+			return false;	// not running a transaction
+		}
+
+		switch ($this->method) {
+			case self::CONN_PDO:
+			case self::CONN_SQLI:
+				$ok = $this->conn->rollback();
+				break;
+			case self::CONN_RAW:
+				$ok = false !== @mysql_query("ROLLBACK", $this->conn);
+				break;
+		}
+
+		if ($ok) {
+			$this->inTransaction = false;
+		}
+		return $ok;
+	}
+
+	public function commitTransaction()
+	{
+		if (!$this->inTransaction) {
+			return false;	// not running a transaction
+		}
+
+		switch ($this->method) {
+			case self::CONN_PDO:
+				$ok = $this->conn->commit();
+				break;
+			case self::CONN_SQLI:
+				$ok = $this->conn->commit();
+				$this->conn->autocommit(true);
+				break;
+			case self::CONN_RAW:
+				$ok = false !== @mysql_query("COMMIT", $this->conn);
+				break;
+		}
+
+		if ($ok) {
+			$this->inTransaction = false;
+		}
+		return $ok;
+	}
+
+	public function inTransaction()
+	{
+		return $this->inTransaction;
 	}
 
 	//--------------------------------------------------------------------------
