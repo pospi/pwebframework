@@ -22,10 +22,13 @@ Features
 			- Abstract HTTP request interface and various implementations
 			- Web Crawling (`web_walker.class.php`)
 				- Crawler engine based on CSS and callbacks allows simple, flexibe and efficient reading of data from remote HTML & XML documents.
+				- Request caching & local cache processing
+				- Request logging to screen, file or email via `ProcessLogger` interface
 	- Response handling (`response.class.php`)
 	    - Heavily genericised output handling in the form of ordered blocks
 - Database connectivity (`dbase.class.php`)
 	- Abstraction layer utilising `PDO`, `mysqli` or `mysql_connect()` client libraries
+	- Query logging to screen, file or email via `ProcessLogger` interface
 - Session management (`session.class.php`)
     - Creation, destruction (login / logout)
     - Stacking (allows user impersonation, etc)
