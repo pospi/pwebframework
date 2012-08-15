@@ -35,3 +35,6 @@
 
 	// css & callback based web crawler class
 	require_once('web_walker.class.php');
+
+	// database abstraction layer
+	require_once('dbase.class.php');
