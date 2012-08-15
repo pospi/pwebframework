@@ -29,6 +29,7 @@ Features
 - Database connectivity (`dbase.class.php`)
 	- Abstraction layer utilising `PDO`, `mysqli` or `mysql_connect()` client libraries
 	- Query logging to screen, file or email via `ProcessLogger` interface
+	- Transactions, sanitisation & automatic client reconnection
 - Session management (`session.class.php`)
     - Creation, destruction (login / logout)
     - Stacking (allows user impersonation, etc)
@@ -57,11 +58,10 @@ Todo
 - Database streaming mechanism for looping through large resultsets
 
 #### Additions ####
-- DB class to subclass PDO with additional functionality
-- Thread management classes: Forker & Receiver.
+- Thread management classes: `ProcSpawner` & `ProcReceiver`
 	- Thread creation with I/O & STDERR stream handles for controlling & reading child threads
 	- Thread pooling
-	- Simplified thread locking mechanism (flock)
+- Simplified process locking mechanism (flock)
 
 License
 -------
