@@ -391,10 +391,25 @@ class DBase
 
 	// :NOTE: these methods do not work with non-transactional table types (MyISAM or ISAM)
 
-	public function startTransaction()
+	const ISOL_REPEATABLEREAD = "REPEATABLE READ";		// all SELECTs within transaction have state from the start of transaction
+	const ISOL_READCOMMITTED = "READ COMMITTED";		// all SELECTs within transaction have state at that moment within it
+	const ISOL_READUNCOMMITTED = "READ UNCOMMITTED";	// like TRANSACT_READCOMMITTED, but potentially missing later writes within the transaction. a 'dirty read'.
+	const ISOL_SERIALIZABLE = "SERIALIZABLE";			// allows other transactions to read the rows being modified, but not update or delete them
+
+	/**
+	 * Begin a database transaction, if supported
+	 * @param string $isolationLevel  the SQL transaction isolation level.
+	 *                                Default depends on the storage engine - InnoDB uses READ COMMITTED, MySQL Cluster uses REPEATABLE READ.
+	 * @return boolean indicating success of enabling the transaction
+	 */
+	public function startTransaction($isolationLevel = null)
 	{
 		if ($this->inTransaction) {
 			return false;	// already running a transaction
+		}
+
+		if (isset($isolationLevel)) {
+			$this->exec("SET TRANSACTION ISOLATION LEVEL $isolationLevel");
 		}
 
 		switch ($this->method) {
