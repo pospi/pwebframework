@@ -14,6 +14,7 @@ class pwebframework
 	public static $sessionExceptionClass = null;
 	public static $configExceptionClass = null;
 	public static $crawlerExceptionClass = null;
+	public static $dbaseExceptionClass = null;
 
 	public static $PWF_PATH;
 }

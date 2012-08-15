@@ -155,6 +155,14 @@ class DBase
 		}
 	}
 
+	private function error($msg, $code = 0)
+	{
+		if (isset(pwebframework::$dbaseExceptionClass)) {
+			throw new pwebframework::$dbaseExceptionClass($msg, $code);
+		}
+		trigger_error($msg, E_USER_ERROR);
+	}
+
 	//--------------------------------------------------------------------------
 	// low-level querying
 	//--------------------------------------------------------------------------
@@ -171,13 +179,18 @@ class DBase
 	 */
 	public function query($sql)
 	{
-		$this->log("Run query: {$sql}", true);
+		$this->log("Running query: {$sql}", true);
 
 		// perform the query
+		$startTime = microtime(true);
 		switch ($this->method) {
 			case self::CONN_PDO:
 				$this->lastAffectedRows = 0;
-				$result = @$this->conn->query($sql);
+				try {
+					$result = $this->conn->query($sql);
+				} catch (PDOException $e) {
+					$result = false;
+				}
 				break;
 			case self::CONN_SQLI:
 				$result = @$this->conn->query($sql);
@@ -189,11 +202,13 @@ class DBase
 
 		// check for an error
 		if ($result === false) {
-			$this->log("Bad query: {$sql}");
+			$this->log("Bad query: {$sql}", true);
 			$errInfo = $this->lastError();
-			$this->log("Error (code {$errInfo[0]}): {$errInfo[1]}", true);
+			$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
 			return false;
 		}
+
+		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 3) . "msec.", true);
 
 		return $result;
 	}
@@ -210,7 +225,7 @@ class DBase
 	 */
 	public function exec($sql, $returnMode = null)
 	{
-		$this->log("Execute query: {$sql}", true);
+		$this->log("Executing query: {$sql}", true);
 
 		if (!isset($returnMode)) {
 			$returnMode = self::RM_AFFECTED_ROWS;
@@ -218,9 +233,14 @@ class DBase
 
 		// perform the query and set affected rows if the API returns that for us
 		$affectedRows = null;
+		$startTime = microtime(true);
 		switch ($this->method) {
 			case self::CONN_PDO:
-				$affectedRows = @$this->conn->exec($sql);
+				try {
+					$affectedRows = $this->conn->exec($sql);
+				} catch (PDOException $e) {
+					$affectedRows = false;
+				}
 				$result = $affectedRows !== false;
 				$this->lastAffectedRows = (int)$affectedRows;
 				break;
@@ -235,11 +255,13 @@ class DBase
 
 		// if the query failed, that's it
 		if (!$result) {
-			$this->log("Bad query: {$sql}");
+			$this->log("Bad query: {$sql}", true);
 			$errInfo = $this->lastError();
-			$this->log("Error (code {$errInfo[0]}): {$errInfo[1]}", true);
+			$this->error("Error (code {$errInfo[0]}): {$errInfo[1]}", $errInfo[0]);
 			return false;
 		}
+
+		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 2) . "msec.", true);
 
 		// return the type of result we're looking for
 		switch ($returnMode) {
@@ -297,7 +319,7 @@ class DBase
 		switch ($this->method) {
 			case self::CONN_PDO:
 				$err = $this->conn->errorInfo();
-				return array($err[0], $err[2]);
+				return array($err[1], $err[2]);
 			case self::CONN_SQLI:
 				return array($this->conn->errno, $this->conn->error);
 			case self::CONN_RAW:
