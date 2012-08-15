@@ -14,4 +14,8 @@ class pwebframework
 	public static $sessionExceptionClass = null;
 	public static $configExceptionClass = null;
 	public static $crawlerExceptionClass = null;
+
+	public static $PWF_PATH;
 }
+
+pwebframework::$PWF_PATH = dirname(__FILE__) . '/';
