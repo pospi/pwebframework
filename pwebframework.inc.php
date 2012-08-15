@@ -27,8 +27,11 @@
 	// application configuration management
 	require_once('config.class.php');
 
-	// logging & backend use
+	// script logging
 	require_once('processlogger.class.php');
+
+	// cryptographic functions
+	require_once('crypto.class.php');
 
 	// css & callback based web crawler class
 	require_once('web_walker.class.php');
