@@ -11,35 +11,35 @@ About
 
 Features
 --------
-- Header manipulation (`headers.class.php`)
+- **Header manipulation** (`headers.class.php`)
 	- Simplified retrieval and encoding
 	- Mutators for setting redirects, controlling caching and other common tasks
-	- Request interrogation (`request.class.php`)
+	- **Request interrogation** (`request.class.php`)
 	    - Input sanitisation (from GET, POST, COOKIE etc)
 	    - Request method determination (HTTP, AJAX, CLI)
 	    - QueryString parsing & redirection
-		- Socket requests (`http_proxy.class.php` and subclasses)
+		- **Socket requests** (`http_proxy.class.php` and subclasses)
 			- Abstract HTTP request interface and various implementations
-			- Web Crawling (`web_walker.class.php`)
+			- **Web Crawling** (`web_walker.class.php`)
 				- Crawler engine based on CSS and callbacks allows simple, flexibe and efficient reading of data from remote HTML & XML documents.
 				- Request caching & local cache processing
 				- Request logging to screen, file or email via `ProcessLogger` interface
-	- Response handling (`response.class.php`)
+	- **Response handling** (`response.class.php`)
 	    - Heavily genericised output handling in the form of ordered blocks
-- Database connectivity (`dbase.class.php`)
+- **Database connectivity** (`dbase.class.php` and subclasses)
 	- Abstraction layer utilising `PDO`, `mysqli` or `mysql_connect()` client libraries
 	- Query logging to screen, file or email via `ProcessLogger` interface
 	- Transactions, sanitisation & automatic client reconnection
-- Session management (`session.class.php`)
+- **Session management** (`session.class.php`)
     - Creation, destruction (login / logout)
     - Stacking (allows user impersonation, etc)
-- Templating (`quicktemplate.class.php`)
+- **Templating** (`quicktemplate.class.php`)
 	- Extremely fast and simple PHP-based templating class
-- Log handling (`processlogger.class.php`)
+- **Log handling** (`processlogger.class.php`)
 	- Logging class suitable for use in critical backend scripts. Features lightweight syntax, builtin error trapping, error emailing and can output logs to file, email or stdout.
-- Encryption & hashing (`crypto.class.php`)
+- **Encryption & hashing** (`crypto.class.php`)
 	- Best-practise API for file & string encryption & one-way hashing
-- Configuration management (`config.class.php`)
+- **Configuration management** (`config.class.php`)
 	- Effortless site configuration with syntax-light variable and database connection retrieval
 
 
