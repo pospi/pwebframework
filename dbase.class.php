@@ -144,15 +144,22 @@ class DBase
 	}
 
 	/**
-	 * Reconnects to the database if possible (when constructed with string arguments rather than an existing DB reference)
+	 * Reconnects to the database if possible
 	 * @return true if reconnected
 	 */
 	public function reconnect()
 	{
 		if ($this->connParams) {
+			// if connection params are stored, we can reconnect always
 			extract($this->connParams);
 			$this->connect($user, $pass, $dbName, $host, $port, $this->method);
 			return true;
+		} else if ($this->method = self::CONN_SQLI) {
+			// when mysqli extension is used, we can try pinging to see if ping reconnection is enabled
+			return $this->conn->ping();
+		} else if ($this->method = self::CONN_RAW) {
+			// when mysql extension is used, we can try pinging to see if ping reconnection is enabled
+			return mysql_ping($this->conn);
 		}
 		return false;
 	}
