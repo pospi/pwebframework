@@ -4,27 +4,55 @@
  *
  * A database abstraction layer allowing the use of many common database client APIs.
  *
- * This class is built for MySQL, but there's no reason most of it won't work with
- * other database engines.
- * You can change the static class variable $DB_TYPE to set a different database engine when
- * using PDO, but this will not work with mysqli or mysql, for obvious reasons.
- *
  * @package 	pWebFramework
  * @author 		Sam Pospischil <pospi@spadgos.com>
  * @since		15/8/2012
- * @requires	PDO (PHP Data Objects), PHP MySQLi library or MySQL library
+ * @requires	PDO (PHP Data Objects), mysqli extension or mysql extension
  * @requires	ProcessLogger if logging is to be enabled
  */
 
 class DBaseDisconnectedException extends Exception {}
 
-class DBase
+interface IDBase
+{
+	public function __connect($user, $pass, $dbName, $host = 'localhost', $port = null);
+	public function __realQuery($sql);
+	public function __realExec($sql, $returnType = null);
+	public function __realStart();
+	public function __realCommit();
+	public function __realRollback();
+
+	/**
+	 * Escape a string for a query using the underlying escape mechanism of the database driver.
+	 */
+	public function quotestring($param);
+
+	/**
+	 * Return the insert ID from the previous INSERT query run on an autoincrementing table index
+	 * @return int
+	 */
+	public function lastInsertId();
+
+	/**
+	 * Return the number of affected rows from the previous DELETE, UPDATE, REPLACE or INSERT query
+	 * @return int
+	 */
+	public function affectedRows();
+
+	/**
+	 * Returns an array of error information on the last operation executed, with the error code
+	 * at index 0 and message at index 1.
+	 */
+	public function lastError();
+}
+
+abstract class DBase implements IDBase
 {
 	// supported database connection APIs
 	const CONN_AUTO = 0;
-	const CONN_RAW = 1;
-	const CONN_PDO = 2;
-	const CONN_SQLI = 3;
+	const CONN_RAW = 'mysql';
+	const CONN_PDO = 'pdo';
+	const CONN_SQLI = 'mysqli';
 
 	// return mode constants for exec()
 	const RM_SUCCESS = 0;
@@ -35,17 +63,14 @@ class DBase
 	public $DB_TYPE = 'mysql';
 
 	// underlying connection object & method of connection
-	private $conn;
-	private $method = DBase::CONN_AUTO;
-	private $connParams;
+	protected $conn;
+	protected $connParams;
 
-	private $lastAffectedRows;	// last operation's affected rowcount, only used with PDO
+	protected $inTransaction = false;	// transaction flag
 
-	private $inTransaction = false;	// transaction flag
-
-	private $logger;			// ProcessLogger instance used for logging
-	private $logging = false;
-	private $debugLog = false;	// if true, output extra info to log
+	protected $logger;			// ProcessLogger instance used for logging
+	protected $logging = false;
+	protected $debugLog = false;	// if true, output extra info to log
 
 	//--------------------------------------------------------------------------
 	// instantiation
@@ -62,6 +87,55 @@ class DBase
 	 * @param string $host           hostname for connection (default localhost)
 	 * @param int    $port           port for connection (default is the default port for that database type)
 	 * @param const  $connectionType type of connection to use. Defaults to autodetection based on installed extensions - preference is PDO, MySQLi and then MySQL.
+	 *
+	 * @return an instance of the DBase class most appropriate to your PHP installation.
+	 */
+	public static function Create()
+	{
+		$na = func_num_args();
+
+		// determine connection type
+		if ($na > 1) {
+			@list($user, $pass, $dbName, $host, $port, $connectionType) = func_get_args();
+		} else {
+			$conn = func_get_arg(0);
+			$connectionType = self::CONN_AUTO;
+
+			if ($conn instanceof PDO) {
+				$connectionType = self::CONN_PDO;
+			} else if ($conn instanceof mysqli) {
+				$connectionType = self::CONN_SQLI;
+			} else if (is_resource($conn) && get_resource_type($conn) == 'mysql link') {
+				$connectionType = self::CONN_RAW;
+			}
+		}
+
+		// determine best DB client if we should autodetect
+		if (!isset($connectionType) || $connectionType === self::CONN_AUTO) {
+			if (class_exists('PDO')) {
+				$connectionType = self::CONN_PDO;
+			} else if (function_exists('mysqli_connect')) {
+				$connectionType = self::CONN_SQLI;
+			} else if (function_exists('mysql_connect')) {
+				$connectionType = self::CONN_RAW;
+			}
+		}
+
+		// load & return the instance
+		$class = 'DBase_' . $connectionType;
+
+		if (!class_exists($class)) {
+			require_once(pwebframework::$PWF_PATH . 'dbase_' . $connectionType . '.class.php');
+		}
+
+		if ($na > 1) {
+			return new $class($user, $pass, $dbName, $host, $port);
+		}
+		return new $class($conn);
+	}
+
+	/**
+	 * @see DBase::Create()
 	 */
 	public function __construct()
 	{
@@ -69,8 +143,8 @@ class DBase
 
 		if ($na > 1) {
 			// new connection parameters
-			@list($user, $pass, $dbName, $host, $port, $connectionType) = func_get_args();
-			$this->connect($user, $pass, $dbName, $host, $port, $connectionType);
+			@list($user, $pass, $dbName, $host, $port) = func_get_args();
+			$this->connect($user, $pass, $dbName, $host, $port);
 		} else if ($na == 1) {
 			// existing connection handle
 			$this->setConnection(func_get_arg(0));
@@ -85,35 +159,10 @@ class DBase
 	 * @param string $dbName         name of the database to use by default
 	 * @param string $host           hostname for connection (default localhost)
 	 * @param int    $port           port for connection (default is the default port for that database type)
-	 * @param const  $connectionType type of connection to use. Defaults to autodetection based on installed extensions - preference is PDO, MySQLi and then MySQL.
 	 */
-	public function connect($user, $pass, $dbName, $host = 'localhost', $port = null, $connectionMode = null)
+	public function connect($user, $pass, $dbName, $host = 'localhost', $port = null)
 	{
-		if (!(isset($connectionMode) && $this->method == self::CONN_AUTO) || $connectionMode == self::CONN_AUTO) {
-			if (class_exists('PDO')) {
-				$connectionMode = self::CONN_PDO;
-			} else if (function_exists('mysqli_connect')) {
-				$connectionMode = self::CONN_SQLI;
-			} else if (function_exists('mysql_connect')) {
-				$connectionMode = self::CONN_RAW;
-			} else {
-				trigger_error("Unable to connect to database: no available storage engine", E_USER_ERROR);
-			}
-		}
-
-		switch ($connectionMode) {
-			case self::CONN_PDO:
-				$this->conn = new PDO($this->DB_TYPE . ":dbname={$dbName};host={$host}", $user, $pass);
-				break;
-			case self::CONN_SQLI:
-				$this->conn = mysqli_connect($host, $user, $pass, $dbName, $port);
-				break;
-			case self::CONN_RAW:
-				$this->conn = mysql_connect($host . ($port ? ":$port" : ''), $user, $pass);
-				mysql_select_db($dbName, $this->conn);
-				break;
-		}
-		$this->method = $connectionMode;
+		$this->__connect($user, $pass, $dbName, $host, $port);
 
 		// store connection parameters to allow reconnecting
 		$this->connParams = array(
@@ -127,19 +176,10 @@ class DBase
 
 	/**
 	 * Set the underlying database connection used by this instance
-	 * @param mixed $conn an existing PDO object or MySQLi / MySQL connection resource
+	 * @param mixed $conn an existing connection object for this database type
 	 */
 	public function setConnection($conn)
 	{
-		if ($conn instanceof PDO) {
-			$this->method = self::CONN_PDO;
-		} else if ($conn instanceof mysqli) {
-			$this->method = self::CONN_SQLI;
-		} else if (is_resource($conn) && get_resource_type($conn) == 'mysql link') {
-			$this->method = self::CONN_RAW;
-		} else {
-			trigger_error("Unknown connection type for provided database connection handle", E_USER_ERROR);
-		}
 		$this->conn = $conn;
 	}
 
@@ -152,14 +192,8 @@ class DBase
 		if ($this->connParams) {
 			// if connection params are stored, we can reconnect always
 			extract($this->connParams);
-			$this->connect($user, $pass, $dbName, $host, $port, $this->method);
+			$this->connect($user, $pass, $dbName, $host, $port);
 			return true;
-		} else if ($this->method = self::CONN_SQLI) {
-			// when mysqli extension is used, we can try pinging to see if ping reconnection is enabled
-			return $this->conn->ping();
-		} else if ($this->method = self::CONN_RAW) {
-			// when mysql extension is used, we can try pinging to see if ping reconnection is enabled
-			return mysql_ping($this->conn);
 		}
 		return false;
 	}
@@ -225,22 +259,8 @@ class DBase
 
 		// perform the query
 		$startTime = microtime(true);
-		switch ($this->method) {
-			case self::CONN_PDO:
-				$this->lastAffectedRows = 0;
-				try {
-					$result = $this->conn->query($sql);
-				} catch (PDOException $e) {
-					$result = false;
-				}
-				break;
-			case self::CONN_SQLI:
-				$result = @$this->conn->query($sql);
-				break;
-			case self::CONN_RAW:
-				$result = @mysql_query($sql, $this->conn);
-				break;
-		}
+
+		$result = $this->__realQuery($sql);
 
 		// check for an error
 		if ($result === false) {
@@ -282,26 +302,9 @@ class DBase
 		}
 
 		// perform the query and set affected rows if the API returns that for us
-		$affectedRows = null;
 		$startTime = microtime(true);
-		switch ($this->method) {
-			case self::CONN_PDO:
-				try {
-					$affectedRows = $this->conn->exec($sql);
-				} catch (PDOException $e) {
-					$affectedRows = false;
-				}
-				$result = $affectedRows !== false;
-				$this->lastAffectedRows = (int)$affectedRows;
-				break;
-			case self::CONN_SQLI:
-				$result = @$this->conn->query($sql);
-				$result = (bool)$result;
-				break;
-			case self::CONN_RAW:
-				$result = @mysql_query($sql, $this->conn) !== false;
-				break;
-		}
+
+		list($result, $affectedRows) = $this->__realExec($sql, $returnMode);
 
 		// if the query failed, that's it
 		if (!$result) {
@@ -352,21 +355,6 @@ class DBase
 		return $array;
 	}
 
-	public function quotestring($param)
-	{
-		if ($param === null) {
-			return 'NULL';
-		}
-		switch ($this->method) {
-			case self::CONN_PDO:
-				return $this->conn->quote($param);
-			case self::CONN_SQLI:
-				return $this->conn->real_escape_string($param);
-			case self::CONN_RAW:
-				return mysql_real_escape_string($param, $this->conn);
-		}
-	}
-
 	public function quoteint($param)
 	{
 		if ($param === null) {
@@ -398,59 +386,6 @@ class DBase
 	}
 
 	//--------------------------------------------------------------------------
-	// database query state
-	//--------------------------------------------------------------------------
-
-	/**
-	 * Return the insert ID from the previous INSERT query run on an autoincrementing table index
-	 * @return int
-	 */
-	public function lastInsertId()
-	{
-		switch ($this->method) {
-			case self::CONN_PDO:
-				return $this->conn->lastInsertId();
-			case self::CONN_SQLI:
-				return $this->conn->insert_id;
-			case self::CONN_RAW:
-				return mysql_insert_id($this->conn);
-		}
-	}
-
-	/**
-	 * Return the number of affected rows from the previous DELETE, UPDATE, REPLACE or INSERT query
-	 * @return int
-	 */
-	public function affectedRows()
-	{
-		switch ($this->method) {
-			case self::CONN_PDO:
-				return $this->lastAffectedRows;
-			case self::CONN_SQLI:
-				return $this->conn->affected_rows;
-			case self::CONN_RAW:
-				return mysql_affected_rows($this->conn);
-		}
-	}
-
-	/**
-	 * Returns an array of error information on the last operation executed, with the error code
-	 * at index 0 and message at index 1.
-	 */
-	public function lastError()
-	{
-		switch ($this->method) {
-			case self::CONN_PDO:
-				$err = $this->conn->errorInfo();
-				return array($err[1], $err[2]);
-			case self::CONN_SQLI:
-				return array($this->conn->errno, $this->conn->error);
-			case self::CONN_RAW:
-				return array(mysql_errno($this->conn), mysql_error($this->conn));
-		}
-	}
-
-	//--------------------------------------------------------------------------
 	// transactions
 	//--------------------------------------------------------------------------
 
@@ -477,17 +412,7 @@ class DBase
 			$this->exec("SET TRANSACTION ISOLATION LEVEL $isolationLevel");
 		}
 
-		switch ($this->method) {
-			case self::CONN_PDO:
-				$ok = $this->conn->beginTransaction();
-				break;
-			case self::CONN_SQLI:
-				$ok = $this->conn->autocommit(false);
-				break;
-			case self::CONN_RAW:
-				$ok = false !== @mysql_query("BEGIN", $this->conn);
-				break;
-		}
+		$this->__realStart();
 
 		if ($ok) {
 			$this->inTransaction = true;
@@ -501,15 +426,7 @@ class DBase
 			return false;	// not running a transaction
 		}
 
-		switch ($this->method) {
-			case self::CONN_PDO:
-			case self::CONN_SQLI:
-				$ok = $this->conn->rollback();
-				break;
-			case self::CONN_RAW:
-				$ok = false !== @mysql_query("ROLLBACK", $this->conn);
-				break;
-		}
+		$this->__realRollback();
 
 		if ($ok) {
 			$this->inTransaction = false;
@@ -523,18 +440,7 @@ class DBase
 			return false;	// not running a transaction
 		}
 
-		switch ($this->method) {
-			case self::CONN_PDO:
-				$ok = $this->conn->commit();
-				break;
-			case self::CONN_SQLI:
-				$ok = $this->conn->commit();
-				$this->conn->autocommit(true);
-				break;
-			case self::CONN_RAW:
-				$ok = false !== @mysql_query("COMMIT", $this->conn);
-				break;
-		}
+		$this->__realCommit();
 
 		if ($ok) {
 			$this->inTransaction = false;
