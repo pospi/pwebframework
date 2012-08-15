@@ -333,6 +333,71 @@ class DBase
 	}
 
 	//--------------------------------------------------------------------------
+	// escaping & sanitisation
+	//--------------------------------------------------------------------------
+
+	public function quote($param, $quoteType = 'string')
+	{
+		if (!function_exists(array($this, 'quote' . $quoteType))) {
+			trigger_error("Unknown quote type: $quoteType", E_USER_ERROR);
+		}
+		return call_user_func(array($this, 'quote' . $quoteType), $param);
+	}
+
+	public function quoteall(Array $array, $quoteType = 'string')
+	{
+		foreach ($array as &$val) {
+			$val = call_user_func(array($this, 'quote' . $quoteType), $val);
+		}
+		return $array;
+	}
+
+	public function quotestring($param)
+	{
+		if ($param === null) {
+			return 'NULL';
+		}
+		switch ($this->method) {
+			case self::CONN_PDO:
+				return $this->conn->quote($param);
+			case self::CONN_SQLI:
+				return $this->conn->real_escape_string($param);
+			case self::CONN_RAW:
+				return mysql_real_escape_string($param, $this->conn);
+		}
+	}
+
+	public function quoteint($param)
+	{
+		if ($param === null) {
+			return 'NULL';
+		}
+		return intval($param);
+	}
+
+	public function quotehex($param)
+	{
+		if ($param === null) {
+			return 'NULL';
+		}
+		$str = '0x' . $param;
+		if (!is_numeric($str)) {
+			// not a hex number
+			trigger_error("quotehex: non-hex input ($param)", E_USER_WARNING);
+			return '';
+		}
+		return $str;
+	}
+
+	public function quotebin($param)
+	{
+		if ($param === null) {
+			return 'NULL';
+		}
+		return '0x' . bin2hex($param);
+	}
+
+	//--------------------------------------------------------------------------
 	// database query state
 	//--------------------------------------------------------------------------
 
