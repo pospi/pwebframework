@@ -23,6 +23,14 @@ interface IDBase
 	public function __realRollback();
 
 	/**
+	 * Reads the next row from the previous query() result. Use $this->lastResult within
+	 * this method to access the raw result returned from the query.
+	 * @param  const $fetchMode return mode for the query, defaults to FETCH_ASSOC.
+	 * @return mixed
+	 */
+	public function nextRow($fetchMode = null);
+
+	/**
 	 * Escape a string for a query using the underlying escape mechanism of the database driver.
 	 */
 	public function quotestring($param);
@@ -59,6 +67,11 @@ abstract class DBase implements IDBase
 	const RM_AFFECTED_ROWS = 1;
 	const RM_INSERT_ID = 2;
 
+	// row fetch mode constants
+	const FETCH_ARRAY = 0;
+	const FETCH_ASSOC = 1;
+	const FETCH_OBJECT = 2;
+
 	// database type for PDO. You can override this in external code if you need to support other database engines.
 	public $DB_TYPE = 'mysql';
 
@@ -71,6 +84,8 @@ abstract class DBase implements IDBase
 	protected $logger;			// ProcessLogger instance used for logging
 	protected $logging = false;
 	protected $debugLog = false;	// if true, output extra info to log
+
+	protected $lastResult;		// last raw query result.
 
 	//--------------------------------------------------------------------------
 	// instantiation
@@ -280,6 +295,7 @@ abstract class DBase implements IDBase
 
 		$this->log("Query done in " . number_format((microtime(true) - $startTime) * 1000, 3) . " msec.", true);
 
+		$this->lastResult = $result;
 		return $result;
 	}
 

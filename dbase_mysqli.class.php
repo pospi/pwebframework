@@ -48,6 +48,27 @@ class DBase_mysqli extends DBase
 		return array((bool)$result, null);
 	}
 
+	public function nextRow($fetchMode = null)
+	{
+		if (!isset($fetchMode)) {
+			$fetchMode = self::FETCH_ASSOC;
+		}
+
+		switch ($fetchMode) {
+			case self::FETCH_ARRAY:
+				$cb = 'fetch_row';
+				break;
+			case self::FETCH_ASSOC:
+				$cb = 'fetch_assoc';
+				break;
+			case self::FETCH_OBJECT:
+				$cb = 'fetch_object';
+				break;
+		}
+
+		return call_user_func(array($this->lastResult, $cb));
+	}
+
 	public function quotestring($param)
 	{
 		if ($param === null) {

@@ -58,6 +58,27 @@ class DBase_pdo extends DBase
 		return array($result, (int)$affectedRows);
 	}
 
+	public function nextRow($fetchMode = null)
+	{
+		if (!isset($fetchMode)) {
+			$fetchMode = self::FETCH_ASSOC;
+		}
+
+		switch ($fetchMode) {
+			case self::FETCH_ARRAY:
+				$fetchMode = PDO::FETCH_NUM;
+				break;
+			case self::FETCH_ASSOC:
+				$fetchMode = PDO::FETCH_ASSOC;
+				break;
+			case self::FETCH_OBJECT:
+				$fetchMode = PDO::FETCH_OBJ;
+				break;
+		}
+
+		return $this->lastResult->fetch($fetchMode);
+	}
+
 	public function quotestring($param)
 	{
 		if ($param === null) {

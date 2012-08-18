@@ -48,6 +48,27 @@ class DBase_mysql extends DBase
 		return array(@mysql_query($sql, $this->conn) !== false, null);
 	}
 
+	public function nextRow($fetchMode = null)
+	{
+		if (!isset($fetchMode)) {
+			$fetchMode = self::FETCH_ASSOC;
+		}
+
+		switch ($fetchMode) {
+			case self::FETCH_ARRAY:
+				$cb = 'mysql_fetch_row';
+				break;
+			case self::FETCH_ASSOC:
+				$cb = 'mysql_fetch_assoc';
+				break;
+			case self::FETCH_OBJECT:
+				$cb = 'mysql_fetch_object';
+				break;
+		}
+
+		return call_user_func($cb, $this->lastResult);
+	}
+
 	public function quotestring($param)
 	{
 		if ($param === null) {
