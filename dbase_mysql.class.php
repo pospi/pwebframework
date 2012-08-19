@@ -74,7 +74,7 @@ class DBase_mysql extends DBase
 		if ($param === null) {
 			return 'NULL';
 		}
-		return mysql_real_escape_string($param, $this->conn);
+		return "'" . mysql_real_escape_string($param, $this->conn) . "'";
 	}
 
 	public function lastInsertId()
