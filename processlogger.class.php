@@ -61,6 +61,7 @@ class ProcessLogger implements ArrayAccess {
 	private $useErrorHandler = false;
 	private $exceptionHandler = null;
 	private $ignoreErrorPaths = array();
+	private $ignoreErrorTypes = array();
 	private $errorCount = 0;		// we can count errors to put a consistent variable at the end of logs to check on
 	private $byteCount = 0;			// track number of bytes written in order to send correct log instead of whole appended file
 
@@ -154,6 +155,12 @@ class ProcessLogger implements ArrayAccess {
 	// in libraries and still use it without creating log spam.
 	public function ignoreErrorsFrom($path) {
 		$this->ignoreErrorPaths[] = $path;
+	}
+
+	public function ignoreErrorTypes() {
+		foreach (func_get_args() as $const) {
+			$this->ignoreErrorTypes[] = $const;
+		}
 	}
 
 	//======================================================================
@@ -267,6 +274,12 @@ class ProcessLogger implements ArrayAccess {
 	//		  at the time of failure.
 	public function __error($errno, $errstr, $errfile = "", $errline = 0, $errcontext = array(), $doTrace = true) {
 		if (!(error_reporting())) return;
+
+		foreach ($this->ignoreErrorTypes as $type) {
+			if ($type == $errno) {
+				return false;
+			}
+		}
 
 		foreach ($this->ignoreErrorPaths as $path) {
 			if (strpos($errfile, $path) === 0) return false;
