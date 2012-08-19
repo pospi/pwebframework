@@ -357,7 +357,7 @@ abstract class DBase implements IDBase
 
 	public function quote($param, $quoteType = 'string')
 	{
-		if (!function_exists(array($this, 'quote' . $quoteType))) {
+		if (!method_exists($this, 'quote' . $quoteType)) {
 			trigger_error("Unknown quote type: $quoteType", E_USER_ERROR);
 		}
 		return call_user_func(array($this, 'quote' . $quoteType), $param);
