@@ -23,7 +23,7 @@ class Crypto
 	public static $GPG_DATADIR = null;	// defaults to ~/.gnupg
 
 	private static $logger;				// ProcessLogger instance used for logging
-	private static $debugLog = false;	// if true, output extra info to log
+	private static $debugLog = false;	// if true, output extra info to log. If 2, output even more GPG information from all available sources.
 
 	/**
 	 * Detect the paths to executables required by this class
@@ -50,7 +50,7 @@ class Crypto
 
 	private static function log($line, $debug = false)
 	{
-		if ($debug && !self::$debugLog) {
+		if ($debug && !self::$debugLog || ($debug && (int)$debug > (int)self::$debugLog)) {
 			return false;
 		}
 		if (self::$logger) {
@@ -72,21 +72,20 @@ class Crypto
 	 */
 	public static function encryptString($string, $recipientEmail, $outputFile = null)
 	{
-		$string = escapeshellarg($string);
 		$recipientEmail = escapeshellarg($recipientEmail);
 		$outputFile = isset($outputFile) ? escapeshellarg($outputFile) : false;
 
 		if ($outputFile) {
-			$cmd = "echo $string | " . self::$GPG_PATH . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " --always-trust --yes -e -r $recipientEmail -o $outputFile";
+			$cmd = self::$GPG_PATH . " --always-trust --yes" . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " -e -r $recipientEmail -o $outputFile";
 			self::log("RUNNING ENCRYPTION: " . $cmd, true);
 
-			return self::exec($cmd);
+			return self::runExternalProcess($cmd, $string);
 		}
 
-		$cmd = "echo $string | " . self::$GPG_PATH . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " --always-trust --yes -e -r $recipientEmail";
+		$cmd = self::$GPG_PATH . " --always-trust --yes" . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " -e -r $recipientEmail";
 		self::log("RUNNING ENCRYPTION: " . $cmd, true);
 
-		return bin2hex(shell_exec($cmd));
+		return bin2hex(self::runExternalProcess($cmd, $string, true));
 	}
 
 	/**
@@ -101,10 +100,10 @@ class Crypto
 		$recipientEmail = escapeshellarg($recipientEmail);
 		$replaceOriginal = $targetFilename === true;
 
-		$cmd = self::$GPG_PATH . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " --always-trust --yes --status-fd 1 -e -r $recipientEmail" . (!$replaceOriginal && $targetFilename ? " -o $targetFilename" : '') . " " . escapeshellarg($file);
+		$cmd = self::$GPG_PATH . " --always-trust --yes " . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " -e -r $recipientEmail" . (!$replaceOriginal && $targetFilename ? " -o $targetFilename" : '') . " " . escapeshellarg($file);
 		self::log("RUNNING ENCRYPTION: " . $cmd, true);
 
-		if (self::exec($cmd) === 0) {
+		if (self::runExternalProcess($cmd) === 0) {
 			if ($replaceOriginal) {
 				unlink($file);
 				rename($file . '.gpg', $file);
@@ -126,24 +125,16 @@ class Crypto
 	{
 		$file = escapeshellarg($file);
 		$unencryptedFile = isset($unencryptedFile) ? escapeshellarg($unencryptedFile) : false;
-		$keyPassphrase = isset($keyPassphrase) ? escapeshellarg($keyPassphrase) : false;
 
 		if ($keyPassphrase) {
-			$cmd = ' | ' . self::$GPG_PATH . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " --always-trust --yes --passphrase-fd 0 --status-fd 1 " . ($unencryptedFile ? "-o $unencryptedFile " : '') . "-d $file";
-			$logCmd = "echo '[PASSPHRASE]'" . $cmd;
-			$cmd = "echo {$keyPassphrase}" . $cmd;
+			$cmd = self::$GPG_PATH . " --always-trust --yes --batch --passphrase-fd 0" . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . ($unencryptedFile ? " -o $unencryptedFile" : '') . " -d $file";
 		} else {
-			$cmd = self::$GPG_PATH . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . " --always-trust --yes " . ($unencryptedFile ? "-o $unencryptedFile " : '') . "-d $file";
-			$logCmd = $cmd;
+			$cmd = self::$GPG_PATH . " --always-trust --yes --batch" . (self::$GPG_DATADIR ? ' --homedir ' . escapeshellarg(self::$GPG_DATADIR) : '') . ($unencryptedFile ? " -o $unencryptedFile" : '') . " -d $file";
 		}
 
-		self::log("RUNNING DECRYPTION: " . $logCmd, true);
+		self::log("RUNNING DECRYPTION: " . $cmd, true);
 
-		if ($unencryptedFile) {
-			$res = self::exec($cmd);
-		} else {
-			$res = shell_exec($cmd);
-		}
+		$res = self::runExternalProcess($cmd, $keyPassphrase, $unencryptedFile ? false : true);
 
 		return $unencryptedFile ? $res === 0 : $res;
 	}
@@ -268,24 +259,41 @@ class Crypto
 	}
 
 	/**
-	 * execute a command and return exit code. Suppress all output from the command.
+	 * execute a command and return exit code or output.
+	 * Suppress all output from the command, but log any errors or output from it according to log level.
 	 */
-	private static function exec($cmd)
+	private static function runExternalProcess($cmd, $input = null, $returnOutput = false)
 	{
-		$null = array();
-		unset($null);
-		exec($cmd, $null, $exitStatus);
+		$descriptorspec = array(
+			0 => array("pipe", "r"), // stdin
+			1 => array("pipe", "w"), // stdout
+			2 => array("pipe", "w"), // stderr
+		);
+
+		$process = proc_open($cmd, $descriptorspec, $pipes, getcwd());
+
+		if (is_resource($process)) {
+			if (isset($input)) {
+				fwrite($pipes[0], $input);
+			}
+			fclose($pipes[0]);
+
+			$output = stream_get_contents($pipes[1]);
+			$errors = stream_get_contents($pipes[2]);
+			fclose($pipes[1]);
+			fclose($pipes[2]);
+
+			$exitStatus = proc_close($process);
+		}
 
 		if ($exitStatus !== 0) {
 			self::log("Command error (exit status {$exitStatus})");
-			$cmdOutput = implode("\n", $null);
-			if ($cmdOutput) {
-				self::log($cmdOutput);
-			} else {
-				self::log("No error output available");
-			}
+			if (self::$logger) self::$logger->indent();
+			self::log("Error output was:\n{$errors}", true);
+			self::log("Status output was:\n{$output}", 2);
+			if (self::$logger) self::$logger->unindent();
 		}
 
-		return $exitStatus;
+		return $returnOutput ? $output : $exitStatus;
 	}
 }
