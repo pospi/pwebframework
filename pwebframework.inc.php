@@ -19,7 +19,7 @@
 	require_once('session.class.php');
 
 	// remote requests (serverside AJAX)
-	require_once('http_proxy.class.php');
+	require_once('httpproxy.class.php');
 
 	// page templating
 	require_once('quicktemplate.class.php');
@@ -34,7 +34,7 @@
 	require_once('crypto.class.php');
 
 	// css & callback based web crawler class
-	require_once('web_walker.class.php');
+	require_once('webwalker.class.php');
 
 	// database abstraction layer
 	require_once('dbase.class.php');
