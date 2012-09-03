@@ -33,8 +33,8 @@ class DBase_mysql extends DBase
 	// allow reconnection via ping() function
 	public function reconnect()
 	{
-		if (!parent::reconnect()) {
-			return mysql_ping($this->conn);
+		if (!mysql_ping($this->conn)) {
+			return parent::reconnect();
 		}
 	}
 
