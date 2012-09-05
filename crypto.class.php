@@ -196,6 +196,8 @@ class Crypto
 		mcrypt_generic_deinit($td);
 		mcrypt_module_close($td);
 
+		$decrypted_data = rtrim($decrypted_data, "\0");
+
 		return $decrypted_data;
 	}
 
