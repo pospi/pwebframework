@@ -282,7 +282,7 @@ class ProcessLogger implements ArrayAccess {
 		}
 
 		foreach ($this->ignoreErrorPaths as $path) {
-			if (strpos($errfile, $path) === 0) return false;
+			if (strpos($errfile, realpath($path)) === 0) return false;
 		}
 
 		$fatal = $this->logError($errno, $errstr, $errfile, $errline, ($doTrace ? debug_backtrace() : array()));
