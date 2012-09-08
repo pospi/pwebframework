@@ -208,16 +208,34 @@ class Crypto
 	 * Hash a string with a provided salt
 	 * @param  string $string string to hash
 	 * @param  string $salt   salt to hash with.
+	 * @param  int    $length length of the hash to generate.
+	 *                        When ommitted, maximum security and length are generated - SHA-512 (64 bytes) if present, or falling back down the chain.
+	 *                        When provided, the result is generated mapping the following algorithms to output key lengths:
+	 *                        	64 bytes: SHA-512
+	 *                        	32 bytes: SHA-256 (uses Blowfish if SHA-256 is not supported)
+	 *                        	16 bytes: MD5 (you should salt and rehash multiple times with insecure hashing methods like this)
 	 * @return hashed string in binary
 	 */
-	public static function hash($string, $salt)
+	public static function hash($string, $salt, $length = null)
 	{
-		if (defined('CRYPT_SHA512') && CRYPT_SHA512) {
+		if (!isset($length)) {
+			$length = defined('CRYPT_SHA512') && CRYPT_SHA512 ? 64
+					: ((defined('CRYPT_SHA256') && CRYPT_SHA256) || (defined('CRYPT_BLOWFISH') && CRYPT_BLOWFISH) ? 32 : 16);
+		}
+
+		if ($length >= 64 && defined('CRYPT_SHA512') && CRYPT_SHA512) {
 			$salt = '$6$rounds=5000$' . $salt . '$';
-		} else if (defined('CRYPT_SHA256') && CRYPT_SHA256) {
+		} else if ($length >= 32 && defined('CRYPT_SHA256') && CRYPT_SHA256) {
 			$salt = '$5$rounds=5000$' . $salt . '$';
-		} else if (defined('CRYPT_BLOWFISH') && CRYPT_BLOWFISH) {
-			$salt = '$2a$08$' . preg_replace('/[^a-zA-Z0-9]/', '-', $salt) . '$';
+		} else if ($length >= 32 && defined('CRYPT_BLOWFISH') && CRYPT_BLOWFISH) {
+			// protect against high-bit attacks after PHP version 5.3.7
+			static $hasBlowfishHighBit;
+			if (!isset($hasBlowfishHighBit)) {
+				$hasBlowfishHighBit = version_compare(PHP_VERSION, '5.3.7') >= 0;
+			}
+			$salt = ($hasBlowfishHighBit ? '$2y$' : '$2a$') . '08$' . preg_replace('/[^a-zA-Z0-9]/', '-', $salt) . '$';
+		} else if ($length >= 16) {
+			$salt = '$1$' . $salt . '$';
 		}
 
 		$result = crypt($string, $salt);
