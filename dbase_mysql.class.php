@@ -48,7 +48,7 @@ class DBase_mysql extends DBase
 		return array(@mysql_query($sql, $this->conn) !== false, null);
 	}
 
-	public function nextRow($fetchMode = null)
+	public function nextRow($fetchMode = null, $result = null)
 	{
 		if (!isset($fetchMode)) {
 			$fetchMode = self::FETCH_ASSOC;
@@ -66,7 +66,7 @@ class DBase_mysql extends DBase
 				break;
 		}
 
-		return call_user_func($cb, $this->lastResult);
+		return call_user_func($cb, $result ? $result : $this->lastResult);
 	}
 
 	public function quotestring($param)

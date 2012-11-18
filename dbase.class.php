@@ -26,9 +26,10 @@ interface IDBase
 	 * Reads the next row from the previous query() result. Use $this->lastResult within
 	 * this method to access the raw result returned from the query.
 	 * @param  const $fetchMode return mode for the query, defaults to FETCH_ASSOC.
+	 * @param  mixed $result	connection resource for pulling the next row from, if different to $this->lastResult
 	 * @return mixed
 	 */
-	public function nextRow($fetchMode = null);
+	public function nextRow($fetchMode = null, $result = null);
 
 	/**
 	 * Escape a string for a query using the underlying escape mechanism of the database driver.

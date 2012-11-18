@@ -58,7 +58,7 @@ class DBase_pdo extends DBase
 		return array($result, (int)$affectedRows);
 	}
 
-	public function nextRow($fetchMode = null)
+	public function nextRow($fetchMode = null, $result = null)
 	{
 		if (!isset($fetchMode)) {
 			$fetchMode = self::FETCH_ASSOC;
@@ -76,6 +76,9 @@ class DBase_pdo extends DBase
 				break;
 		}
 
+		if ($result) {
+			return $result->fetch($fetchMode);
+		}
 		return $this->lastResult->fetch($fetchMode);
 	}
 
