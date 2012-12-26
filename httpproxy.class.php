@@ -95,10 +95,10 @@ abstract class HTTPProxy implements IHTTPProxy
 	public static function getProxy($url)
 	{
 		if (function_exists('curl_init')) {
-			require_once('http_proxy_curl.class.php');
+			require_once(pwebframework::$PWF_PATH . 'http_proxy_curl.class.php');
 			return new ProxyCURL($url);
 		} else if (function_exists('fsockopen')) {
-			require_once('http_proxy_socket.class.php');
+			require_once(pwebframework::$PWF_PATH . 'http_proxy_socket.class.php');
 			return new ProxySocket($url);
 		} else {
 			return false;		// no proxy for you, sorry!
