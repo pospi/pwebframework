@@ -244,7 +244,7 @@ abstract class Request
 			Request::storeQueryParams();
 			$arr = Request::$QUERY_PARAMS;
 		}
-		return http_build_query($arr);
+		return is_scalar($arr) ? $arr : http_build_query($arr);
 	}
 
 	/**
