@@ -20,7 +20,7 @@ Features
 	    - QueryString parsing & redirection
 		- **Socket requests** (`http_proxy.class.php` and subclasses)
 			- Abstract HTTP request interface and various implementations
-			- **Web Crawling** (`web_walker.class.php`)
+			- **Web Crawling** (`web_walker.class.php` & `css_selector.class.php`)
 				- Crawler engine based on CSS and callbacks allows simple, flexibe and efficient reading of data from remote HTML & XML documents.
 				- Request caching & local cache processing
 				- Request logging to screen, file or email via `ProcessLogger` interface
@@ -38,7 +38,9 @@ Features
 - **Log handling** (`processlogger.class.php`)
 	- Logging class suitable for use in critical backend scripts. Features lightweight syntax, builtin error trapping, error emailing and can output logs to file, email or stdout.
 - **Encryption & hashing** (`crypto.class.php`)
-	- Best-practise API for file & string encryption & one-way hashing
+	- Simplifies handling of two-way GnuPG (file-based and string-based) and AES encryption standards
+	- Best-practise hashing methods preferring strongest system encryption available (SHA512 > SHA256 > Blowfish)
+	- Wrapping logic to simplify dealing with hashes by way of hex strings for easy database insertion & querying
 - **Configuration management** (`config.class.php`)
 	- Effortless site configuration with syntax-light variable and database connection retrieval
 
@@ -67,4 +69,4 @@ License
 -------
 This software is provided under an MIT open source license, read the 'LICENSE.txt' file for details.
 
-Copyright &copy; 2010 Sam Pospischil (pospi at spadgos dot com)
+Copyright &copy; 2010-20** Sam Pospischil (pospi at spadgos dot com)
