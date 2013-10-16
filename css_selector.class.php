@@ -120,9 +120,9 @@ class SelectorDOM
 		// :button, :submit, etc
 		$selector = preg_replace('/:(button|submit|file|checkbox|radio|image|reset|text|password)/', 'input[@type="\1"]', $selector);
 		// [id]
-		$selector = preg_replace('/\[(\w+)\]/', '*[@\1]', $selector);
+		$selector = preg_replace('/\[((\w|-)+)\]/', '*[@\1]', $selector);
 		// foo[id=foo]
-		$selector = preg_replace('/\[(\w+)=[\'"]?(.*?)[\'"]?\]/', '[@\1="\2"]', $selector);
+		$selector = preg_replace('/\[((\w|-)+)=[\'"]?(.*?)[\'"]?\]/', '[@\1="\2"]', $selector);
 		// [id=foo]
 		$selector = str_replace(':[', ':*[', $selector);
 		// div#foo
